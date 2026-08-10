@@ -59,7 +59,6 @@
             padding: 0;
         }
         
-        /* 仅在电脑端缩小至90% */
         @media (min-width: 769px) {
             body { zoom: 0.9; }
         }
@@ -200,6 +199,7 @@
         .word-item-title {
             font-size: 15px;
             font-weight: 500;
+            word-break: break-all;
         }
         .word-item-meta {
             font-size: 12px;
@@ -210,11 +210,13 @@
             color: var(--apple-green);
             font-weight: 500;
             font-size: 12px;
+            white-space: nowrap;
         }
         .badge-star {
             color:var(--apple-orange);
             font-size:12px;
             margin-left:var(--space-sm);
+            white-space: nowrap;
         }
         .main-content {
             flex: 1;
@@ -293,7 +295,6 @@
             transform: translateY(-1px);
         }
         
-        /* 修复问题3：统一美化危险（清空）按钮 */
         .btn-danger{
             padding: 9px 18px;
             border-radius: var(--radius-sm);
@@ -343,7 +344,7 @@
             font-size: 36px;
             font-weight: 700;
             letter-spacing: -0.4px;
-            line-height:1.15;
+            line-height:1.2;
         }
         .pinyin-sub {
             font-size: 18px;
@@ -386,10 +387,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
         }
         .contrastGrid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: var(--space-lg);
         }
         .contrast-box {
@@ -403,6 +406,7 @@
             font-size: 26px;
             font-weight: 600;
             margin-bottom: var(--space-md);
+            word-break: break-all;
         }
         .contrast-box p {
             font-size: 16px;
@@ -468,9 +472,10 @@
             font-size:14px;
             color:var(--text-secondary);
             margin-bottom:var(--space-md);
+            word-break: break-all;
         }
         .quiz-main-question{
-            font-size:24px;
+            font-size:20px;
             font-weight:500;
             margin-bottom:var(--space-lg);
             line-height:1.7;
@@ -489,7 +494,8 @@
             background: var(--card-bg);
             font-size: 17px;
             cursor: pointer;
-            min-width:160px;
+            min-width: 160px;
+            flex: 1; /* 自动撑满剩余空间 */
             transition: var(--transition);
             color:var(--text-main);
         }
@@ -599,11 +605,11 @@
             display: none;
         }
         
-        /* 修复问题4：彻底优化的手机端样式 (Off-Canvas 侧边栏) */
+        /* 彻底优化的手机端样式排版 */
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
-                height: 100dvh; /* 适配手机浏览器安全区 */
+                height: 100dvh;
                 overflow: hidden; 
             }
             #btnMobileMenu {
@@ -613,11 +619,11 @@
             .sidebar {
                 position: fixed;
                 top: 0;
-                left: -320px; /* 默认隐藏在左侧 */
+                left: -320px;
                 height: 100%;
                 width: 85%;
                 max-width: 320px;
-                z-index: 1001; /* 层级高于遮罩 */
+                z-index: 1001;
                 box-shadow: 4px 0 24px rgba(0,0,0,0.2);
                 transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             }
@@ -654,11 +660,27 @@
             }
             .group-header{
                 flex-direction:column;
-                gap:var(--space-lg);
+                gap:var(--space-md);
+                padding: var(--space-lg);
             }
+            .title-area h2 {
+                font-size: 26px; /* 移动端缩小标题 */
+                word-break: break-all;
+            }
+            .pinyin-sub { font-size: 16px; }
             .contrastGrid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr; /* 单列显示 */
             }
+            .section-card {
+                padding: var(--space-lg);
+            }
+            /* 答题按钮单列纵向占满屏幕，防溢出 */
+            .btn-option {
+                min-width: unset;
+                width: 100%;
+                flex: unset;
+            }
+            .word-item-header { flex-wrap: wrap; gap: 4px; }
         }
     </style>
 </head>
@@ -739,7 +761,7 @@
         <div id="globalQuizView" class="section-card" style="display:none;">
             <div class="section-title">
                 随机刷题
-                <div style="display:flex;gap:10px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button class="btn-secondary" onclick="restartQuiz()">重新随机</button>
                     <button class="btn-secondary" onclick="setQuizPool('all')">全部题目</button>
                 </div>
@@ -801,20 +823,16 @@
         let quizListCache = [];
         let renderedQuizCount = 0;
         let quizPoolType = 'all';
-        
-        // 核心修改1：彻底替换 currentIndex 为 currentId 以确保绝对唯一绑定
         let currentId = null;
         let activeCategory = 'all';
         let isFullQuizMode = false;
         let debounceTimer = null;
         let scrollListenerBound = false;
 
-        // 判断 smallWords 是否完全是 bigWords 的子集
         function isWordSubset(smallWords, bigWords) {
             return smallWords.every(word => bigWords.includes(word));
         }
 
-        // 数据库去重
         function deduplicateDatabase() {
             const seenMap = new Map();
             database.forEach(item => {
@@ -824,7 +842,6 @@
                 }
             });
             const uniqueByContent = [...seenMap.values()];
-
             const result = [];
             for (let i = 0; i < uniqueByContent.length; i++) {
                 const current = uniqueByContent[i];
@@ -857,7 +874,6 @@
             body.setAttribute('data-theme', cur === 'light' ? 'dark' : 'light');
         }
         
-        // 手机端抽屉菜单切换
         function toggleMobileMenu(forceOpen) {
             const sidebar = document.getElementById('sidebarWrap');
             const overlay = document.getElementById('mobileOverlay');
@@ -909,7 +925,6 @@
         function init(){
             switchMode(lastMode,false);
             if(database.length>0){
-                // 确保默认选中项是合法的ID
                 if (!currentId || !database.some(d => d.id === currentId)) {
                     currentId = database[0].id;
                 }
@@ -956,12 +971,11 @@
                 const isMaster = masteredIds.has(item.id);
                 const isStar = starIds.has(item.id);
                 const dom = document.createElement('div');
-                // 核心修复：比对 item.id 而不是不可靠的 idx
                 dom.className = `word-item ${item.id === currentId ? 'active' : ''}`;
                 dom.onclick = ()=>{
                     switchMode('study',false);
                     selectWord(item.id);
-                    if(window.innerWidth <= 768) toggleMobileMenu(false); // 手机端点击后自动收起
+                    if(window.innerWidth <= 768) toggleMobileMenu(false);
                 };
                 let tagHtml = '';
                 if(isMaster) tagHtml += '<span class="badge-master">已掌握</span>';
@@ -981,7 +995,7 @@
             const item = database.find(d => d.id === id);
             if(!item) return;
             currentId = id;
-            renderWordList(); // 由于依靠 id 判断 active，此步已实现真正的一对一高光
+            renderWordList();
 
             document.getElementById('groupTitle').innerText = item.words.join(' - ');
             document.getElementById('groupPinyin').innerText = `[${item.pinyin}]`;
@@ -1036,7 +1050,6 @@
             }
         }
 
-        // 修改：传入确切的 itemId，而非不可靠的数组索引 idx
         function singleAnswer(itemId, qIdx, selOpt, btn) {
             const group = database.find(d => d.id === itemId);
             if(!group) return;
@@ -1237,7 +1250,6 @@
             }
             let html = '';
             wrongData.forEach(g=>{
-                // 传 g.id 实现绝对准确的跳转，修复了之前传 idx 的逻辑错误
                 html += `
                 <div class="contrast-box">
                     <h4>${g.words.join(' - ')}【${g.category}】</h4>
@@ -1342,7 +1354,6 @@
             }
         }
 
-        // ====================== 本地加载部分保持不变 ======================
         function parseDictionaryText(text) {
             const source = String(text || '').replace(/^\uFEFF/, '').trim();
             if (!source) throw new Error('dictionary.json 内容为空');
@@ -1404,7 +1415,7 @@
             }
         }
 
-        function loadDictionaryViaIframe(url) {
+        function loadDictionaryViaIframe(url, timeoutDuration = 5000) {
             return new Promise((resolve, reject) => {
                 const frame = document.createElement('iframe');
                 let finished = false;
@@ -1417,7 +1428,10 @@
                     cleanup();
                     reject(error);
                 };
-                const timer = setTimeout(() => fail(new Error('无法读取本地 dictionary.json')), 5000);
+                
+                // 【核心修改点】根据传入的超时时间动态设定（本地协议时会传极短的时间）
+                const timer = setTimeout(() => fail(new Error('无法读取本地 dictionary.json')), timeoutDuration);
+                
                 frame.onload = () => {
                     if (finished) return;
                     try {
@@ -1446,21 +1460,34 @@
 
         function loadLocalDictionary() {
             const hasData = localStorage.getItem('synonym_db');
+            
+            // 【核心修改点】检测是否是本地直接双击打开的（file://协议）
+            const isLocalFile = location.protocol === 'file:';
             const dictionaryUrl = new URL('./dictionary.json', document.baseURI);
-            dictionaryUrl.searchParams.set('_', Date.now());
+            
+            // 如果是本地运行，千万不能加随机时间戳后缀，否则电脑底层找不到这个文件！
+            if (!isLocalFile) {
+                dictionaryUrl.searchParams.set('_', Date.now());
+            }
 
-            const loadByFetch = fetch(dictionaryUrl.href, { cache: 'no-store' })
-                .then(response => {
+            // 如果是本地协议，fetch 几乎必然被拦截，不如干脆跳过或快速失败
+            const fetchPromise = isLocalFile 
+                ? Promise.reject(new Error('本地 file:// 协议跳过 fetch'))
+                : fetch(dictionaryUrl.href, { cache: 'no-store' }).then(response => {
                     if (!response.ok) throw new Error('网络响应异常，未找到 dictionary.json');
                     return response.text();
-                })
-                .then(parseDictionaryText);
+                });
 
-            loadByFetch
-                .catch(fetchError => loadDictionaryViaIframe(dictionaryUrl).catch(iframeError => {
-                    iframeError.message = `${fetchError.message}；${iframeError.message}`;
-                    throw iframeError;
-                }))
+            fetchPromise
+                .then(parseDictionaryText)
+                .catch(fetchError => {
+                    // 【核心修改点】本地协议时，把备用方案的超时时间缩短为 800毫秒（不再苦等 5 秒）
+                    const timeoutMs = isLocalFile ? 800 : 5000;
+                    return loadDictionaryViaIframe(dictionaryUrl, timeoutMs).catch(iframeError => {
+                        iframeError.message = `${fetchError.message}；${iframeError.message}`;
+                        throw iframeError;
+                    });
+                })
                 .then(data => {
                     if (Array.isArray(data) && data.length > 0) {
                         database = hasData ? [...database, ...data] : data;
@@ -1470,7 +1497,7 @@
                     init();
                 })
                 .catch(error => {
-                    console.error('dictionary.json 加载失败，将使用本地已有数据或默认题库。', error);
+                    console.warn('dictionary.json 快速探测结束：无法自动加载本地文件，将使用本地已有缓存或默认题库。', error);
                     init();
                 });
         }
