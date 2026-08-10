@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>同义词辨析学习系统</title>
     <style>
         :root {
@@ -58,6 +58,12 @@
             margin: 0;
             padding: 0;
         }
+        
+        /* 仅在电脑端缩小至90% */
+        @media (min-width: 769px) {
+            body { zoom: 0.9; }
+        }
+
         body {
             font-family: var(--font-sf);
             background-color: var(--page-bg);
@@ -114,7 +120,7 @@
             flex-wrap: wrap;
             gap: var(--space-xs);
         }
-        .stats-b strong {
+        .stats-banner strong {
             color: var(--apple-blue);
             font-weight: 500;
         }
@@ -286,11 +292,38 @@
             box-shadow: var(--shadow-hover);
             transform: translateY(-1px);
         }
+        
+        /* 修复问题3：统一美化危险（清空）按钮 */
         .btn-danger{
-            background:var(--apple-red);
-            color:#fff;
-            border:none;
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: var(--apple-red);
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
         }
+        .btn-danger:hover {
+            opacity: 0.92;
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-1px);
+        }
+        
+        #btnMobileMenu {
+            display: none; 
+            width: 100%;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: bold;
+            background: var(--blue-light);
+            color: var(--apple-blue);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            text-align: center;
+        }
+
         .group-header {
             background: var(--card-bg);
             padding: var(--space-xl);
@@ -565,28 +598,59 @@
             margin-bottom: var(--space-md);
             display: none;
         }
-        .loading-spin{
-            width:24px;height:24px;
-            border:2px solid var(--blue-light);
-            border-top-color:var(--apple-blue);
-            border-radius:50%;
-            animation:spin 0.8s linear infinite;
-        }
-        @keyframes spin{
-            to{transform:rotate(360deg);}
-        }
+        
+        /* 修复问题4：彻底优化的手机端样式 (Off-Canvas 侧边栏) */
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
-                overflow: auto;
-                height:auto;
+                height: 100dvh; /* 适配手机浏览器安全区 */
+                overflow: hidden; 
+            }
+            #btnMobileMenu {
+                display: block !important;
+                margin-bottom: var(--space-sm);
             }
             .sidebar {
-                width: 100%;
-                height: auto;
+                position: fixed;
+                top: 0;
+                left: -320px; /* 默认隐藏在左侧 */
+                height: 100%;
+                width: 85%;
+                max-width: 320px;
+                z-index: 1001; /* 层级高于遮罩 */
+                box-shadow: 4px 0 24px rgba(0,0,0,0.2);
+                transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            }
+            .sidebar.mobile-open {
+                left: 0;
             }
             .main-content {
+                width: 100%;
+                padding: var(--space-sm);
+            }
+            .top-toolbar {
+                flex-direction: column;
+                align-items: stretch;
                 padding: var(--space-md);
+            }
+            .mode-switch {
+                display: flex;
+                width: 100%;
+                gap: 4px;
+            }
+            .mode-btn {
+                flex: 1;
+                padding: 10px 4px;
+                font-size: 13px;
+                text-align: center;
+            }
+            .action-btns {
+                display: flex;
+                width: 100%;
+                justify-content: space-between;
+            }
+            .action-btns button {
+                flex: 1;
             }
             .group-header{
                 flex-direction:column;
@@ -599,6 +663,9 @@
     </style>
 </head>
 <body data-theme="light">
+    <!-- 手机端遮罩层 -->
+    <div class="modal-overlay" id="mobileOverlay" style="z-index:1000;" onclick="toggleMobileMenu(false)"></div>
+
     <div class="sidebar" id="sidebarWrap">
         <div class="brand">
             同义词辨析学习系统
@@ -621,26 +688,29 @@
         </div>
         <div class="word-list" id="wordList"></div>
     </div>
+    
     <div class="main-content">
         <div class="top-toolbar">
+            <button id="btnMobileMenu" onclick="toggleMobileMenu(true)">☰ 展开词条列表</button>
             <div class="mode-switch">
                 <button class="mode-btn active" id="btnStudyMode" onclick="switchMode('study')">学习对比模式</button>
                 <button class="mode-btn" id="btnQuizMode" onclick="switchMode('quiz')">专注刷题模式</button>
                 <button class="mode-btn" id="btnWrongBook" onclick="switchMode('wrong')">错题本</button>
             </div>
             <div class="action-btns">
-                <button class="btn-primary" onclick="openImportModal()">导入JSON题库</button>
+                <button class="btn-primary" onclick="openImportModal()">导入题库</button>
                 <button class="btn-secondary" onclick="clearDatabase()">清空重置</button>
                 <button class="btn-secondary" id="fullQuizBtn" style="display:none" onclick="toggleFullQuiz()">全屏刷题</button>
             </div>
         </div>
+        
         <div id="studyHeader">
             <div class="group-header">
                 <div class="title-area">
                     <h2 id="groupTitle">请导入或选择近义词</h2>
                     <div class="pinyin-sub" id="groupPinyin"></div>
                 </div>
-                <div style="display:flex;gap:10px;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
                     <button class="master-toggle-btn" id="starBtn" onclick="toggleStar()">
                         <span id="starIcon">○</span> 收藏
                     </button>
@@ -650,6 +720,7 @@
                 </div>
             </div>
         </div>
+        
         <div id="studyModeView">
             <div class="section-card">
                 <div class="section-title">辨识同异</div>
@@ -664,6 +735,7 @@
                 <div id="quizContainer"></div>
             </div>
         </div>
+        
         <div id="globalQuizView" class="section-card" style="display:none;">
             <div class="section-title">
                 随机刷题
@@ -675,11 +747,13 @@
             <div class="quiz-wrap" id="globalQuizBox"></div>
             <div class="load-more-tip" id="loadMoreTip">向下滚动加载更多题目</div>
         </div>
+        
         <div id="wrongBookView" class="section-card" style="display:none;">
             <div class="section-title">错题本 <button class="btn-danger" onclick="clearAllWrong()">清空所有错题</button></div>
             <div id="wrongListBox" class="wrong-list-box"></div>
         </div>
     </div>
+    
     <div class="modal-overlay" id="importModal">
         <div class="modal">
             <h3>导入/追加题库数据</h3>
@@ -696,6 +770,7 @@
             </div>
         </div>
     </div>
+    
     <script>
         const QUIZ_PAGE_SIZE = 20;
         const initialData = [
@@ -726,24 +801,21 @@
         let quizListCache = [];
         let renderedQuizCount = 0;
         let quizPoolType = 'all';
-        let currentIndex = 0;
+        
+        // 核心修改1：彻底替换 currentIndex 为 currentId 以确保绝对唯一绑定
+        let currentId = null;
         let activeCategory = 'all';
         let isFullQuizMode = false;
         let debounceTimer = null;
         let scrollListenerBound = false;
 
-        // ====================== 【修改核心】去重相关函数 ======================
-        
         // 判断 smallWords 是否完全是 bigWords 的子集
         function isWordSubset(smallWords, bigWords) {
             return smallWords.every(word => bigWords.includes(word));
         }
 
-        // 数据库去重：
-        // 1. 词条内容完全相同（顺序不同）视为重复，保留先出现的条目
-        // 2. 某一词组被另一更长词组完全包含时，保留词数更多的条目
+        // 数据库去重
         function deduplicateDatabase() {
-            // 第一步：无序完全相同去重
             const seenMap = new Map();
             database.forEach(item => {
                 const sortedKey = [...item.words].sort().join(',');
@@ -753,7 +825,6 @@
             });
             const uniqueByContent = [...seenMap.values()];
 
-            // 第二步：子集包含去重，保留词条数量更多的
             const result = [];
             for (let i = 0; i < uniqueByContent.length; i++) {
                 const current = uniqueByContent[i];
@@ -766,15 +837,10 @@
                         break;
                     }
                 }
-                if (!isSubsumed) {
-                    result.push(current);
-                }
+                if (!isSubsumed) result.push(current);
             }
-
             database = result;
         }
-
-        // ====================== 以下为原有功能代码 ======================
 
         function saveAllStorage(){
             localStorage.setItem('synonym_db', JSON.stringify(database));
@@ -789,6 +855,20 @@
             const body = document.body;
             const cur = body.getAttribute('data-theme');
             body.setAttribute('data-theme', cur === 'light' ? 'dark' : 'light');
+        }
+        
+        // 手机端抽屉菜单切换
+        function toggleMobileMenu(forceOpen) {
+            const sidebar = document.getElementById('sidebarWrap');
+            const overlay = document.getElementById('mobileOverlay');
+            const isOpen = forceOpen !== undefined ? forceOpen : !sidebar.classList.contains('mobile-open');
+            if(isOpen){
+                sidebar.classList.add('mobile-open');
+                overlay.style.display = 'block';
+            }else{
+                sidebar.classList.remove('mobile-open');
+                overlay.style.display = 'none';
+            }
         }
 
         function debounceRenderWordList(){
@@ -828,11 +908,16 @@
 
         function init(){
             switchMode(lastMode,false);
-            renderWordList();
             if(database.length>0){
-                currentIndex = Math.min(currentIndex,database.length-1);
-                selectWord(currentIndex);
-            }else clearStudyView();
+                // 确保默认选中项是合法的ID
+                if (!currentId || !database.some(d => d.id === currentId)) {
+                    currentId = database[0].id;
+                }
+                selectWord(currentId);
+            }else {
+                clearStudyView();
+                renderWordList();
+            }
             updateStat();
             bindScrollListener();
         }
@@ -861,17 +946,23 @@
                 return text.includes(kw);
             });
             filterData.sort((a,b)=> a.words[0].localeCompare(b.words[0], 'zh-Hans-CN-u-co-pinyin'));
+            
             if(filterData.length === 0){
                 wrap.innerHTML = '<div class="empty-card">暂无匹配词组</div>';
                 return;
             }
+            
             filterData.forEach(item=>{
-                const idx = database.findIndex(d=>d.id === item.id);
                 const isMaster = masteredIds.has(item.id);
                 const isStar = starIds.has(item.id);
                 const dom = document.createElement('div');
-                dom.className = `word-item ${idx === currentIndex ? 'active' : ''}`;
-                dom.onclick = ()=>{switchMode('study',false);selectWord(idx);};
+                // 核心修复：比对 item.id 而不是不可靠的 idx
+                dom.className = `word-item ${item.id === currentId ? 'active' : ''}`;
+                dom.onclick = ()=>{
+                    switchMode('study',false);
+                    selectWord(item.id);
+                    if(window.innerWidth <= 768) toggleMobileMenu(false); // 手机端点击后自动收起
+                };
                 let tagHtml = '';
                 if(isMaster) tagHtml += '<span class="badge-master">已掌握</span>';
                 if(isStar) tagHtml += '<span class="badge-star">收藏</span>';
@@ -886,17 +977,20 @@
             });
         }
 
-        function selectWord(idx){
-            if(idx<0||idx>=database.length) return;
-            currentIndex = idx;
-            const item = database[currentIndex];
-            renderWordList();
+        function selectWord(id){
+            const item = database.find(d => d.id === id);
+            if(!item) return;
+            currentId = id;
+            renderWordList(); // 由于依靠 id 判断 active，此步已实现真正的一对一高光
+
             document.getElementById('groupTitle').innerText = item.words.join(' - ');
             document.getElementById('groupPinyin').innerText = `[${item.pinyin}]`;
+            
             const masterBtn = document.getElementById('masterToggleBtn');
             const masterIcon = document.getElementById('masterIcon');
             const masterText = document.getElementById('masterText');
             const starIcon = document.getElementById('starIcon');
+            
             masterBtn.classList.toggle('is-master', masteredIds.has(item.id));
             masterIcon.innerText = masteredIds.has(item.id) ? '●' : '○';
             masterText.innerText = masteredIds.has(item.id) ? '已掌握' : '标记为已掌握';
@@ -930,9 +1024,9 @@
                     <div style="margin-bottom:24px;padding:22px;background:var(--page-bg);border-radius:var(--radius-md);">
                         <div style="font-size:17px;font-weight:500;margin-bottom:16px;">${q.question} ${isW?'<span style="color:var(--apple-red)">（曾答错）</span>':''}</div>
                         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;">
-                            ${q.options.map(opt=>`<button class="btn-option" onclick="singleAnswer(${idx},${qIdx},'${opt}',this)">${opt}</button>`).join('')}
+                            ${q.options.map(opt=>`<button class="btn-option" onclick="singleAnswer(${item.id},${qIdx},'${opt}',this)">${opt}</button>`).join('')}
                         </div>
-                        <div id="exp-${idx}-${qIdx}" style="display:none;padding:16px;background:#fff;border-left:2px solid var(--apple-blue);margin-top:10px;color:var(--text-secondary);">
+                        <div id="exp-${item.id}-${qIdx}" style="display:none;padding:16px;background:#fff;border-left:2px solid var(--apple-blue);margin-top:10px;color:var(--text-secondary);">
                             <strong>解析：</strong>${q.explanation}
                         </div>
                     </div>`;
@@ -942,8 +1036,10 @@
             }
         }
 
-        function singleAnswer(itemIdx, qIdx, selOpt, btn) {
-            const group = database[itemIdx];
+        // 修改：传入确切的 itemId，而非不可靠的数组索引 idx
+        function singleAnswer(itemId, qIdx, selOpt, btn) {
+            const group = database.find(d => d.id === itemId);
+            if(!group) return;
             const q = group.quizzes[qIdx];
             const btns = btn.parentElement.querySelectorAll('.btn-option');
             btns.forEach(b => {
@@ -954,23 +1050,23 @@
                 btn.classList.add('selected-wrong');
                 addWrongQuestion(group.id,qIdx);
             }
-            document.getElementById(`exp-${itemIdx}-${qIdx}`).style.display = 'block';
+            document.getElementById(`exp-${itemId}-${qIdx}`).style.display = 'block';
         }
 
         function toggleStar(){
-            const gid = database[currentIndex].id;
-            starIds.has(gid) ? starIds.delete(gid) : starIds.add(gid);
+            if(!currentId) return;
+            starIds.has(currentId) ? starIds.delete(currentId) : starIds.add(currentId);
             saveAllStorage();
-            selectWord(currentIndex);
+            selectWord(currentId);
         }
 
         function toggleMaster() {
-            const item = database[currentIndex];
-            if (masteredIds.has(item.id)) masteredIds.delete(item.id);
-            else masteredIds.add(item.id);
-            clearGroupWrong(item.id);
+            if(!currentId) return;
+            if (masteredIds.has(currentId)) masteredIds.delete(currentId);
+            else masteredIds.add(currentId);
+            clearGroupWrong(currentId);
             saveAllStorage();
-            selectWord(currentIndex);
+            selectWord(currentId);
             updateStat();
         }
 
@@ -1002,6 +1098,7 @@
             document.getElementById('btnStudyMode').classList.toggle('active', mode === 'study');
             document.getElementById('btnQuizMode').classList.toggle('active', mode === 'quiz');
             document.getElementById('btnWrongBook').classList.toggle('active', mode === 'wrong');
+            
             document.getElementById('studyHeader').style.display = mode === 'study' ? 'flex' : 'none';
             document.getElementById('studyModeView').style.display = mode === 'study' ? 'block' : 'none';
             document.getElementById('globalQuizView').style.display = mode === 'quiz' ? 'block' : 'none';
@@ -1140,13 +1237,13 @@
             }
             let html = '';
             wrongData.forEach(g=>{
-                const idx = database.findIndex(d=>d.id === g.id);
+                // 传 g.id 实现绝对准确的跳转，修复了之前传 idx 的逻辑错误
                 html += `
                 <div class="contrast-box">
                     <h4>${g.words.join(' - ')}【${g.category}】</h4>
                     <p style="margin:8px 0 14px;">${g.pinyin}</p>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                        <button class="btn-secondary" onclick="switchMode('study',false);selectWord(${idx})">前往学习</button>
+                        <button class="btn-secondary" onclick="switchMode('study',false);selectWord(${g.id})">前往学习</button>
                         <button class="btn-danger" onclick="clearGroupWrong(${g.id});renderWrongBook();">清空本组错题</button>
                     </div>
                 </div>`;
@@ -1233,8 +1330,10 @@
                 document.getElementById('jsonInput').value = '';
                 closeImportModal();
                 alert(`成功导入并去重，当前共${database.length}组词组`);
-                currentIndex = mode === 'replace' ? 0 : database.length - 1;
-                updateStat();
+                
+                if (database.length > 0) {
+                    currentId = database[database.length - 1].id;
+                }
                 init();
             } catch (e) {
                 errorEl.innerText = "JSON解析失败：" + e.message + "，请检查格式";
@@ -1243,9 +1342,7 @@
             }
         }
 
-// ====================== 自动加载同级目录下的 dictionary.json ======================
-        // dictionary.json 当前由多个数组直接拼接而成（例如 ][）。先尝试标准 JSON，
-        // 失败后按顶层括号边界逐段解析，兼容单数组和拼接数组两种文件格式。
+        // ====================== 本地加载部分保持不变 ======================
         function parseDictionaryText(text) {
             const source = String(text || '').replace(/^\uFEFF/, '').trim();
             if (!source) throw new Error('dictionary.json 内容为空');
@@ -1307,8 +1404,6 @@
             }
         }
 
-        // 某些浏览器禁止 file:// 页面通过 fetch 读取同目录文件。隐藏 iframe
-        // 仍可在允许本地文档访问的浏览器中读取文本，因此作为兼容性回退。
         function loadDictionaryViaIframe(url) {
             return new Promise((resolve, reject) => {
                 const frame = document.createElement('iframe');
@@ -1352,7 +1447,6 @@
         function loadLocalDictionary() {
             const hasData = localStorage.getItem('synonym_db');
             const dictionaryUrl = new URL('./dictionary.json', document.baseURI);
-            // 使用时间戳防止 GitHub Pages 缓存，确保读取到最新提交的 JSON。
             dictionaryUrl.searchParams.set('_', Date.now());
 
             const loadByFetch = fetch(dictionaryUrl.href, { cache: 'no-store' })
@@ -1369,7 +1463,6 @@
                 }))
                 .then(data => {
                     if (Array.isArray(data) && data.length > 0) {
-                        // 首次访问使用 JSON；已有本地记录时合并并沿用现有去重规则。
                         database = hasData ? [...database, ...data] : data;
                         deduplicateDatabase();
                         saveAllStorage();
