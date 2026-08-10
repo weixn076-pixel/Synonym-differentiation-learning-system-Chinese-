@@ -1242,33 +1242,38 @@
                 console.error("导入错误详情", e);
             }
         }
-// ====================== 【优化后的】自动加载同级目录下的 dictionary.json ======================
+
+// ====================== 【适配 GitHub Pages】自动加载同级目录下的 dictionary.json ======================
         function loadLocalDictionary() {
             const hasData = localStorage.getItem('synonym_db');
             
-            if (!hasData) {
-                fetch('./dictionary.json')
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('网络响应异常，未找到 dictionary.json');
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (Array.isArray(data) && data.length > 0) {
+            // 使用时间戳防止 GitHub Pages 缓存，确保能读取到你在 GitHub 上最新提交的 JSON
+            fetch('./dictionary.json?t=' + new Date().getTime())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络响应异常，未找到 dictionary.json');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (Array.isArray(data) && data.length > 0) {
+                        if (!hasData) {
+                            // 情况1：首次访问，直接使用 JSON 数据
                             database = data;
-                            deduplicateDatabase(); 
-                            saveAllStorage();
+                        } else {
+                            // 情况2：非首次访问，将 JSON 中的新词库与本地数据合并
+                            // （利用你已经写好的 deduplicateDatabase 去重机制，这样你在 GitHub 加了新词，用户打开网页就能自动更新）
+                            database = [...database, ...data];
                         }
-                        init(); // 数据请求成功并处理完后，再初始化
-                    })
-                    .catch(error => {
-                        console.log('未检测到同级目录下的 dictionary.json 或当前为本地直接双击打开（CORS限制），将使用默认初始题库。', error);
-                        init(); // 即使报错也正常初始化，使用默认数据
-                    });
-            } else {
-                init(); // 如果本地本来就有数据，直接初始化
-            }
+                        deduplicateDatabase(); 
+                        saveAllStorage();
+                    }
+                    init(); // 数据请求成功并合并后，初始化界面
+                })
+                .catch(error => {
+                    console.log('未检测到 dictionary.json 或加载失败，将使用本地已有数据或默认题库。', error);
+                    init(); // 即使报错也正常初始化，保证网页能打开
+                });
         }
 
         window.onload = function() {
