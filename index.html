@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>同义词辨析学习系统</title>
+    <!-- 引入不蒜子静态网页访问量统计服务 -->
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     <style>
         :root {
             --space-xs: 4px;
@@ -114,14 +116,18 @@
             font-size: 13px;
             color: var(--text-secondary);
             margin-bottom: var(--space-md);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-xs);
+        }
+        .stats-banner span {
             display: flex;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: var(--space-xs);
+            align-items: center;
         }
         .stats-banner strong {
             color: var(--apple-blue);
-            font-weight: 500;
+            font-weight: 600;
         }
         .search-box {
             position: relative;
@@ -495,7 +501,7 @@
             font-size: 17px;
             cursor: pointer;
             min-width: 160px;
-            flex: 1; /* 自动撑满剩余空间 */
+            flex: 1;
             transition: var(--transition);
             color:var(--text-main);
         }
@@ -605,7 +611,6 @@
             display: none;
         }
         
-        /* 彻底优化的手机端样式排版 */
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
@@ -664,17 +669,16 @@
                 padding: var(--space-lg);
             }
             .title-area h2 {
-                font-size: 26px; /* 移动端缩小标题 */
+                font-size: 26px;
                 word-break: break-all;
             }
             .pinyin-sub { font-size: 16px; }
             .contrastGrid {
-                grid-template-columns: 1fr; /* 单列显示 */
+                grid-template-columns: 1fr;
             }
             .section-card {
                 padding: var(--space-lg);
             }
-            /* 答题按钮单列纵向占满屏幕，防溢出 */
             .btn-option {
                 min-width: unset;
                 width: 100%;
@@ -693,10 +697,13 @@
             同义词辨析学习系统
             <button class="theme-switch" onclick="toggleTheme()">切换深色</button>
         </div>
+        <!-- 统计看板，包含累计访客数 (UV) 与 累计访问量 (PV) -->
         <div class="stats-banner">
             <span>总组数: <strong id="progressText">0 / 0</strong></span>
             <span>熟练度: <strong id="masterPercent">0%</strong></span>
-            <span>错题: <strong id="wrongCount">0</strong></span>
+            <span>错题数: <strong id="wrongCount">0</strong></span>
+            <span>访客数: <strong id="busuanzi_value_site_uv">--</strong></span>
+            <span style="grid-column: span 2;">全网累计访问: <strong id="busuanzi_value_site_pv">--</strong> 次</span>
         </div>
         <div class="search-box">
             <input type="text" id="searchInput" class="search-input" placeholder="搜索词语/拼音/释义/题目..." oninput="debounceRenderWordList()">
@@ -814,13 +821,10 @@
             }
         ];
 
-        // 核心修复1：载入初始数据
         let database = JSON.parse(localStorage.getItem('synonym_db')) || initialData;
         
-        // 核心修复2：数据清洗。去除旧版因为 bug 导致的 null/undefined 问题
         let wrongQuestionsRaw = JSON.parse(localStorage.getItem('wrong_questions')) || [];
         let wrongQuestions = wrongQuestionsRaw.filter(w => w.groupId != null).map(w => {
-            // 将旧版的 qIdx 平滑迁移为 qIndex，避免旧错题丢失
             if (w.qIndex === undefined && w.qIdx !== undefined) {
                 w.qIndex = w.qIdx;
                 delete w.qIdx;
@@ -846,7 +850,6 @@
             return smallWords.every(word => bigWords.includes(word));
         }
 
-        // 核心修复3：强悍的合并与 ID 重洗系统
         function deduplicateDatabase() {
             const seenMap = new Map();
             database.forEach(item => {
@@ -872,7 +875,6 @@
             }
             database = result;
 
-            // 这里是解决问题的关键：强制扫雷，给所有没有 ID 的词组盖章分配唯一 ID
             let maxId = 0;
             database.forEach(item => {
                 if (typeof item.id === 'number' && item.id > maxId) maxId = item.id;
@@ -887,7 +889,6 @@
             });
         }
         
-        // 初始化时立刻整理并赋予唯一的 ID，修复直接遗留的脏数据
         deduplicateDatabase(); 
 
         function saveAllStorage(){
@@ -932,7 +933,6 @@
             return copy;
         }
 
-        // 统一所有索引参数为 qIndex
         function isQuestionWrong(groupId, qIndex){
             return wrongQuestions.some(w => w.groupId === groupId && w.qIndex === qIndex);
         }
@@ -1519,7 +1519,7 @@
                 .then(data => {
                     if (Array.isArray(data) && data.length > 0) {
                         database = hasData ? [...database, ...data] : data;
-                        deduplicateDatabase(); // 这里会自动强制清洗 ID
+                        deduplicateDatabase();
                         saveAllStorage();
                     }
                     init();
