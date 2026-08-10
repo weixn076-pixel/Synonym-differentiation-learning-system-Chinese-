@@ -814,10 +814,23 @@
             }
         ];
 
+        // 核心修复1：载入初始数据
         let database = JSON.parse(localStorage.getItem('synonym_db')) || initialData;
-        let masteredIds = new Set(JSON.parse(localStorage.getItem('mastered_ids')) || []);
-        let wrongQuestions = JSON.parse(localStorage.getItem('wrong_questions')) || [];
-        let starIds = new Set(JSON.parse(localStorage.getItem('star_ids')) || []);
+        
+        // 核心修复2：数据清洗。去除旧版因为 bug 导致的 null/undefined 问题
+        let wrongQuestionsRaw = JSON.parse(localStorage.getItem('wrong_questions')) || [];
+        let wrongQuestions = wrongQuestionsRaw.filter(w => w.groupId != null).map(w => {
+            // 将旧版的 qIdx 平滑迁移为 qIndex，避免旧错题丢失
+            if (w.qIndex === undefined && w.qIdx !== undefined) {
+                w.qIndex = w.qIdx;
+                delete w.qIdx;
+            }
+            return w;
+        });
+        
+        let masteredIds = new Set((JSON.parse(localStorage.getItem('mastered_ids')) || []).filter(id => id != null));
+        let starIds = new Set((JSON.parse(localStorage.getItem('star_ids')) || []).filter(id => id != null));
+        
         let lastMode = localStorage.getItem('lastMode') || 'study';
         let lastQuizIndex = Number(localStorage.getItem('lastQuizIndex')) || 0;
         let quizListCache = [];
@@ -833,10 +846,11 @@
             return smallWords.every(word => bigWords.includes(word));
         }
 
+        // 核心修复3：强悍的合并与 ID 重洗系统
         function deduplicateDatabase() {
             const seenMap = new Map();
             database.forEach(item => {
-                const sortedKey = [...item.words].sort().join(',');
+                const sortedKey = [...(item.words || [])].sort().join(',');
                 if (!seenMap.has(sortedKey)) {
                     seenMap.set(sortedKey, item);
                 }
@@ -849,7 +863,7 @@
                 for (let j = 0; j < uniqueByContent.length; j++) {
                     if (i === j) continue;
                     const other = uniqueByContent[j];
-                    if (other.words.length > current.words.length && isWordSubset(current.words, other.words)) {
+                    if (other.words && current.words && other.words.length > current.words.length && isWordSubset(current.words, other.words)) {
                         isSubsumed = true;
                         break;
                     }
@@ -857,7 +871,24 @@
                 if (!isSubsumed) result.push(current);
             }
             database = result;
+
+            // 这里是解决问题的关键：强制扫雷，给所有没有 ID 的词组盖章分配唯一 ID
+            let maxId = 0;
+            database.forEach(item => {
+                if (typeof item.id === 'number' && item.id > maxId) maxId = item.id;
+            });
+            const seenIds = new Set();
+            database.forEach(item => {
+                if (typeof item.id !== 'number' || isNaN(item.id) || seenIds.has(item.id)) {
+                    maxId++;
+                    item.id = maxId;
+                }
+                seenIds.add(item.id);
+            });
         }
+        
+        // 初始化时立刻整理并赋予唯一的 ID，修复直接遗留的脏数据
+        deduplicateDatabase(); 
 
         function saveAllStorage(){
             localStorage.setItem('synonym_db', JSON.stringify(database));
@@ -901,30 +932,31 @@
             return copy;
         }
 
-        function isQuestionWrong(groupId,qIdx){
-            return wrongQuestions.some(w=>w.groupId===groupId && w.qIndex===qIdx);
+        // 统一所有索引参数为 qIndex
+        function isQuestionWrong(groupId, qIndex){
+            return wrongQuestions.some(w => w.groupId === groupId && w.qIndex === qIndex);
         }
 
-        function addWrongQuestion(groupId,qIdx){
-            const exist = wrongQuestions.find(w=>w.groupId===groupId && w.qIndex===qIdx);
+        function addWrongQuestion(groupId, qIndex){
+            const exist = wrongQuestions.find(w => w.groupId === groupId && w.qIndex === qIndex);
             if(exist){
                 exist.wrongTimes++;
             }else{
-                wrongQuestions.push({groupId,qIdx,wrongTimes:1});
+                wrongQuestions.push({groupId, qIndex, wrongTimes:1});
             }
             saveAllStorage();
             updateStat();
         }
 
         function clearGroupWrong(gid){
-            wrongQuestions = wrongQuestions.filter(w=>w.groupId !== gid);
+            wrongQuestions = wrongQuestions.filter(w => w.groupId !== gid);
             saveAllStorage();
             updateStat();
         }
 
         function init(){
-            switchMode(lastMode,false);
-            if(database.length>0){
+            switchMode(lastMode, false);
+            if(database.length > 0){
                 if (!currentId || !database.some(d => d.id === currentId)) {
                     currentId = database[0].id;
                 }
@@ -985,7 +1017,7 @@
                         <span class="word-item-title">${item.words.join(' - ')}</span>
                         ${tagHtml}
                     </div>
-                    <div class="word-item-meta">${item.category} · ${item.quizzes.length}题</div>
+                    <div class="word-item-meta">${item.category} · ${(item.quizzes || []).length}题</div>
                 `;
                 wrap.appendChild(dom);
             });
@@ -998,7 +1030,7 @@
             renderWordList();
 
             document.getElementById('groupTitle').innerText = item.words.join(' - ');
-            document.getElementById('groupPinyin').innerText = `[${item.pinyin}]`;
+            document.getElementById('groupPinyin').innerText = `[${item.pinyin || ''}]`;
             
             const masterBtn = document.getElementById('masterToggleBtn');
             const masterIcon = document.getElementById('masterIcon');
@@ -1032,15 +1064,15 @@
 
             const quizWrap = document.getElementById('quizContainer');
             if (item.quizzes && item.quizzes.length > 0) {
-                quizWrap.innerHTML = item.quizzes.map((q, qIdx) => {
-                    const isW = isQuestionWrong(item.id,qIdx);
+                quizWrap.innerHTML = item.quizzes.map((q, qIndex) => {
+                    const isW = isQuestionWrong(item.id, qIndex);
                     return `
                     <div style="margin-bottom:24px;padding:22px;background:var(--page-bg);border-radius:var(--radius-md);">
                         <div style="font-size:17px;font-weight:500;margin-bottom:16px;">${q.question} ${isW?'<span style="color:var(--apple-red)">（曾答错）</span>':''}</div>
                         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;">
-                            ${q.options.map(opt=>`<button class="btn-option" onclick="singleAnswer(${item.id},${qIdx},'${opt}',this)">${opt}</button>`).join('')}
+                            ${q.options.map(opt=>`<button class="btn-option" onclick="singleAnswer(${item.id},${qIndex},'${opt}',this)">${opt}</button>`).join('')}
                         </div>
-                        <div id="exp-${item.id}-${qIdx}" style="display:none;padding:16px;background:#fff;border-left:2px solid var(--apple-blue);margin-top:10px;color:var(--text-secondary);">
+                        <div id="exp-${item.id}-${qIndex}" style="display:none;padding:16px;background:#fff;border-left:2px solid var(--apple-blue);margin-top:10px;color:var(--text-secondary);">
                             <strong>解析：</strong>${q.explanation}
                         </div>
                     </div>`;
@@ -1050,10 +1082,10 @@
             }
         }
 
-        function singleAnswer(itemId, qIdx, selOpt, btn) {
+        function singleAnswer(itemId, qIndex, selOpt, btn) {
             const group = database.find(d => d.id === itemId);
             if(!group) return;
-            const q = group.quizzes[qIdx];
+            const q = group.quizzes[qIndex];
             const btns = btn.parentElement.querySelectorAll('.btn-option');
             btns.forEach(b => {
                 b.disabled = true;
@@ -1061,9 +1093,9 @@
             });
             if (selOpt !== q.answer) {
                 btn.classList.add('selected-wrong');
-                addWrongQuestion(group.id,qIdx);
+                addWrongQuestion(group.id, qIndex);
             }
-            document.getElementById(`exp-${itemId}-${qIdx}`).style.display = 'block';
+            document.getElementById(`exp-${itemId}-${qIndex}`).style.display = 'block';
         }
 
         function toggleStar(){
@@ -1153,11 +1185,13 @@
                 const isGroupMaster = masteredIds.has(g.id);
                 if(quizPoolType === 'wrong' && !isGroupWrong) return;
                 if(quizPoolType === 'master' && isGroupMaster) return;
-                g.quizzes.forEach((q,qIdx) => {
-                    const wItem = wrongQuestions.find(w=>w.groupId === g.id && w.qIndex === qIdx);
+                g.quizzes.forEach((q, qIndex) => {
+                    const wItem = wrongQuestions.find(w=>w.groupId === g.id && w.qIndex === qIndex);
                     let weight = 1;
                     if(wItem) weight += wItem.wrongTimes*2;
-                    for(let i=0;i<weight;i++) rawPool.push({ groupId: g.id, groupName: g.words.join('、'), q, qIdx });
+                    for(let i=0; i<weight; i++) {
+                        rawPool.push({ groupId: g.id, groupName: g.words.join('、'), q, qIndex });
+                    }
                 });
             });
 
@@ -1233,7 +1267,7 @@
             });
             if (selOpt !== q.answer) {
                 btn.classList.add('selected-wrong');
-                addWrongQuestion(item.groupId, item.qIdx);
+                addWrongQuestion(item.groupId, item.qIndex);
             }
             document.getElementById(`q-exp-${idx}`).style.display = 'block';
             lastQuizIndex = idx;
@@ -1253,7 +1287,7 @@
                 html += `
                 <div class="contrast-box">
                     <h4>${g.words.join(' - ')}【${g.category}】</h4>
-                    <p style="margin:8px 0 14px;">${g.pinyin}</p>
+                    <p style="margin:8px 0 14px;">${g.pinyin || ''}</p>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
                         <button class="btn-secondary" onclick="switchMode('study',false);selectWord(${g.id})">前往学习</button>
                         <button class="btn-danger" onclick="clearGroupWrong(${g.id});renderWrongBook();">清空本组错题</button>
@@ -1313,7 +1347,7 @@
                 const rawAll = JSON.parse(wrapText);
                 if (!Array.isArray(rawAll)) throw new Error("解析结果非数组");
                 const mode = document.querySelector('input[name="importMode"]:checked').value;
-                let maxId = database.length > 0 ? Math.max(...database.map(d => d.id)) : 0;
+                let maxId = database.length > 0 ? Math.max(...database.map(d => d.id || 0)) : 0;
                 const safeData = rawAll.map(item => {
                     maxId++;
                     return {
@@ -1429,7 +1463,6 @@
                     reject(error);
                 };
                 
-                // 【核心修改点】根据传入的超时时间动态设定（本地协议时会传极短的时间）
                 const timer = setTimeout(() => fail(new Error('无法读取本地 dictionary.json')), timeoutDuration);
                 
                 frame.onload = () => {
@@ -1460,17 +1493,13 @@
 
         function loadLocalDictionary() {
             const hasData = localStorage.getItem('synonym_db');
-            
-            // 【核心修改点】检测是否是本地直接双击打开的（file://协议）
             const isLocalFile = location.protocol === 'file:';
             const dictionaryUrl = new URL('./dictionary.json', document.baseURI);
             
-            // 如果是本地运行，千万不能加随机时间戳后缀，否则电脑底层找不到这个文件！
             if (!isLocalFile) {
                 dictionaryUrl.searchParams.set('_', Date.now());
             }
 
-            // 如果是本地协议，fetch 几乎必然被拦截，不如干脆跳过或快速失败
             const fetchPromise = isLocalFile 
                 ? Promise.reject(new Error('本地 file:// 协议跳过 fetch'))
                 : fetch(dictionaryUrl.href, { cache: 'no-store' }).then(response => {
@@ -1481,7 +1510,6 @@
             fetchPromise
                 .then(parseDictionaryText)
                 .catch(fetchError => {
-                    // 【核心修改点】本地协议时，把备用方案的超时时间缩短为 800毫秒（不再苦等 5 秒）
                     const timeoutMs = isLocalFile ? 800 : 5000;
                     return loadDictionaryViaIframe(dictionaryUrl, timeoutMs).catch(iframeError => {
                         iframeError.message = `${fetchError.message}；${iframeError.message}`;
@@ -1491,7 +1519,7 @@
                 .then(data => {
                     if (Array.isArray(data) && data.length > 0) {
                         database = hasData ? [...database, ...data] : data;
-                        deduplicateDatabase();
+                        deduplicateDatabase(); // 这里会自动强制清洗 ID
                         saveAllStorage();
                     }
                     init();
