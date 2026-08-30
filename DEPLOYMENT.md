@@ -2,6 +2,24 @@
 
 本项目包含账号、答题记录和付费/受限 API 密钥，不应作为纯静态网页上传。推荐在一台 Linux 云服务器上单实例运行 `synonym_server.py`，由 Caddy 对外提供 HTTPS。
 
+## Vercel 部署
+
+仓库中的 `api/index.js`、`vercel.json` 和 `package.json` 提供 Vercel Serverless API。Vercel 的临时文件系统不能持久保存 SQLite，因此必须先为项目连接 PostgreSQL，再配置：
+
+```text
+DATABASE_URL=托管 PostgreSQL 连接地址
+APP_ORIGIN=https://chennxn.xyz
+ADMIN_USERNAME=管理员用户名
+ADMIN_PASSWORD=不少于 12 位的管理员密码
+ECNU_API_KEY=智能辨析服务密钥
+```
+
+所有变量必须只在 Vercel 项目设置中保存，并应用于 Production。首次访问 API 时服务会自动建表；当数据库中还没有管理员时，会使用 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 创建一个。管理员成功登录后可删除 Vercel 中的 `ADMIN_PASSWORD`，不要把它留在仓库或构建日志中。
+
+部署完成后检查 `https://chennxn.xyz/api/auth/me` 应返回 JSON，而不是 Vercel 404。然后用管理员账号登录网页，确认“邀请码管理”入口可生成、刷新和撤销邀请码。
+
+下述章节是自建 Linux 云服务器方案。
+
 ## 1. 准备域名和服务器
 
 - 准备一个带公网 IPv4 的 Linux 云服务器。

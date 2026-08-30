@@ -171,6 +171,7 @@
       min-height: 0;
       overflow-x: hidden;
       overflow-y: auto;
+      scrollbar-gutter: stable;
       overscroll-behavior-y: contain;
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
@@ -179,9 +180,9 @@
     .word-list::-webkit-scrollbar, .content-scroll::-webkit-scrollbar { width: 8px; }
     .word-list::-webkit-scrollbar-thumb, .content-scroll::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 8px; background: #cfd6d0; background-clip: padding-box; }
     .word-item {
-      width: 100%; min-height: 54px; padding: 9px 12px; border: 0; border-radius: 7px; background: transparent;
+      width: 100%; height: 54px; padding: 9px 12px; border: 0; border-radius: 7px; background: transparent;
       display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 10px;
-      content-visibility: auto; contain-intrinsic-size: 54px; text-align: left; cursor: pointer;
+      text-align: left; cursor: pointer;
     }
     .word-item:hover { background: var(--surface-soft); }
     .word-item.active { background: var(--green-soft); }
@@ -221,6 +222,7 @@
       min-height: 0;
       overflow-x: hidden;
       overflow-y: auto;
+      scrollbar-gutter: stable;
       overscroll-behavior-y: contain;
       -webkit-overflow-scrolling: touch;
       touch-action: pan-y;
@@ -443,7 +445,7 @@
       .search-input { height: 45px; font-size: 16px; }
       .filter-row { padding: 10px 16px; background: var(--surface); }
       .word-list { padding: 7px 8px 24px; }
-      .word-item { min-height: 70px; padding: 11px 13px; }
+      .word-item { height: 70px; padding: 11px 13px; }
       .word-name { font-size: 16px; }
       .content-scroll { background: var(--bg); }
       .detail-view, .practice-view, .saved-view, .ai-view, .admin-view { max-width: none; padding: 19px 16px 92px; }
@@ -912,10 +914,12 @@
       });
     }
 
-    function renderWordList() {
+    function renderWordList(options = {}) {
+      const previousScrollTop = els.wordList.scrollTop;
       const items = filteredItems();
       if (!items.length) {
         els.wordList.innerHTML = '<div class="list-empty">没有找到匹配的词组</div>';
+        els.wordList.scrollTop = 0;
         return;
       }
       els.wordList.innerHTML = items.map(item => `
@@ -923,6 +927,7 @@
           <span class="word-name">${escapeHtml(item.words.join(' / '))}</span>
           <span class="word-state">${state.saved.has(item.id) ? '<svg class="mini-star"><use href="#i-star"></use></svg>' : ''}<span class="state-dot ${state.mastered.has(item.id) ? 'mastered' : ''}"></span></span>
         </button>`).join('');
+      els.wordList.scrollTop = options.resetScroll ? 0 : previousScrollTop;
     }
 
     function renderCommon(item) {
@@ -1200,9 +1205,17 @@
     }
 
     function selectItem(id) {
-      state.selectedId = Number(id);
-      renderWordList();
+      const nextId = Number(id);
+      if (nextId === state.selectedId && state.view === 'detail') return;
+      const listScrollTop = els.wordList.scrollTop;
+      const previousButton = els.wordList.querySelector(`.word-item[data-id="${state.selectedId}"]`);
+      const nextButton = els.wordList.querySelector(`.word-item[data-id="${nextId}"]`);
+      previousButton?.classList.remove('active');
+      nextButton?.classList.add('active');
+      state.selectedId = nextId;
       setView('detail');
+      els.wordList.scrollTop = listScrollTop;
+      requestAnimationFrame(() => { els.wordList.scrollTop = listScrollTop; });
     }
 
     function toggleSaved() {
@@ -1373,7 +1386,7 @@
       if (filter) {
         state.filter = filter.dataset.filter;
         document.querySelectorAll('[data-filter]').forEach(button => button.classList.toggle('active', button === filter));
-        renderWordList(); return;
+        renderWordList({resetScroll:true}); return;
       }
       const jump = event.target.closest('.jump-tab');
       if (jump) {
@@ -1427,10 +1440,10 @@
     els.searchInput.addEventListener('input', () => {
       state.query = els.searchInput.value;
       els.clearSearch.classList.toggle('show', Boolean(state.query));
-      renderWordList();
+      renderWordList({resetScroll:true});
     });
     els.clearSearch.addEventListener('click', () => {
-      els.searchInput.value = ''; state.query = ''; els.clearSearch.classList.remove('show'); renderWordList(); els.searchInput.focus();
+      els.searchInput.value = ''; state.query = ''; els.clearSearch.classList.remove('show'); renderWordList({resetScroll:true}); els.searchInput.focus();
     });
     els.starButton.addEventListener('click', toggleSaved);
     els.mobileStar.addEventListener('click', toggleSaved);

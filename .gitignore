@@ -3,6 +3,8 @@
 *.env
 __pycache__/
 *.py[cod]
+node_modules/
+.vercel/
 synonym_users.sqlite3
 synonym_users.sqlite3-wal
 synonym_users.sqlite3-shm
