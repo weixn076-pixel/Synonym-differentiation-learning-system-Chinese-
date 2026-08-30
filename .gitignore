@@ -1,0 +1,19 @@
+.DS_Store
+.env
+*.env
+__pycache__/
+*.py[cod]
+synonym_users.sqlite3
+synonym_users.sqlite3-wal
+synonym_users.sqlite3-shm
+*.sqlite3.backup
+
+# Local source material and dictionary repair workspace
+*.pdf
+repair_dictionary_*.js
+audit_remaining_from_pdf.py
+parse_book.py
+reasonix.toml
+.reasonix/
+tmp/
+*.txt

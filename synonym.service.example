@@ -1,0 +1,28 @@
+[Unit]
+Description=Chinese Synonym Learning App
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=synonym-app
+Group=synonym-app
+WorkingDirectory=/opt/synonym-app
+Environment=PYTHONUNBUFFERED=1
+Environment=APP_HOST=127.0.0.1
+Environment=APP_PORT=8765
+Environment=APP_ORIGIN=https://chennxn.xyz
+Environment=APP_TRUST_PROXY=1
+Environment=APP_DATA_DIR=/var/lib/synonym-app
+EnvironmentFile=/etc/synonym-app/app.env
+ExecStart=/usr/bin/python3 /opt/synonym-app/synonym_server.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/synonym-app
+
+[Install]
+WantedBy=multi-user.target

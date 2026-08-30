@@ -2,10 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>同义词辨析学习系统</title>
-    <!-- 引入不蒜子静态网页访问量统计服务 -->
-    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
     <style>
         :root {
             --space-xs: 4px;
@@ -60,11 +58,6 @@
             margin: 0;
             padding: 0;
         }
-        
-        @media (min-width: 769px) {
-            body { zoom: 0.9; }
-        }
-
         body {
             font-family: var(--font-sf);
             background-color: var(--page-bg);
@@ -116,18 +109,14 @@
             font-size: 13px;
             color: var(--text-secondary);
             margin-bottom: var(--space-md);
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-xs);
-        }
-        .stats-banner span {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-xs);
         }
-        .stats-banner strong {
+        .stats-b strong {
             color: var(--apple-blue);
-            font-weight: 600;
+            font-weight: 500;
         }
         .search-box {
             position: relative;
@@ -205,7 +194,6 @@
         .word-item-title {
             font-size: 15px;
             font-weight: 500;
-            word-break: break-all;
         }
         .word-item-meta {
             font-size: 12px;
@@ -216,13 +204,11 @@
             color: var(--apple-green);
             font-weight: 500;
             font-size: 12px;
-            white-space: nowrap;
         }
         .badge-star {
             color:var(--apple-orange);
             font-size:12px;
             margin-left:var(--space-sm);
-            white-space: nowrap;
         }
         .main-content {
             flex: 1;
@@ -300,37 +286,11 @@
             box-shadow: var(--shadow-hover);
             transform: translateY(-1px);
         }
-        
         .btn-danger{
-            padding: 9px 18px;
-            border-radius: var(--radius-sm);
-            border: none;
-            background: var(--apple-red);
-            color: #fff;
-            font-size: 13px;
-            cursor: pointer;
-            transition: var(--transition);
+            background:var(--apple-red);
+            color:#fff;
+            border:none;
         }
-        .btn-danger:hover {
-            opacity: 0.92;
-            box-shadow: var(--shadow-hover);
-            transform: translateY(-1px);
-        }
-        
-        #btnMobileMenu {
-            display: none; 
-            width: 100%;
-            padding: 12px;
-            font-size: 15px;
-            font-weight: bold;
-            background: var(--blue-light);
-            color: var(--apple-blue);
-            border: none;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            text-align: center;
-        }
-
         .group-header {
             background: var(--card-bg);
             padding: var(--space-xl);
@@ -350,7 +310,7 @@
             font-size: 36px;
             font-weight: 700;
             letter-spacing: -0.4px;
-            line-height:1.2;
+            line-height:1.15;
         }
         .pinyin-sub {
             font-size: 18px;
@@ -393,12 +353,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: var(--space-sm);
         }
         .contrastGrid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: var(--space-lg);
         }
         .contrast-box {
@@ -412,7 +370,6 @@
             font-size: 26px;
             font-weight: 600;
             margin-bottom: var(--space-md);
-            word-break: break-all;
         }
         .contrast-box p {
             font-size: 16px;
@@ -453,6 +410,27 @@
             font-weight: 500;
             user-select:text;
         }
+        .collocation-tag b {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        .common-meaning {
+            white-space: pre-wrap;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+        .common-colloc-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 14px;
+            color: var(--text-secondary);
+        }
+        .common-colloc-row .coll-label {
+            font-size: 13px;
+            font-weight: 600;
+        }
         .quiz-wrap{
             max-width: 100%;
             margin:0;
@@ -478,10 +456,9 @@
             font-size:14px;
             color:var(--text-secondary);
             margin-bottom:var(--space-md);
-            word-break: break-all;
         }
         .quiz-main-question{
-            font-size:20px;
+            font-size:24px;
             font-weight:500;
             margin-bottom:var(--space-lg);
             line-height:1.7;
@@ -500,8 +477,7 @@
             background: var(--card-bg);
             font-size: 17px;
             cursor: pointer;
-            min-width: 160px;
-            flex: 1;
+            min-width:160px;
             transition: var(--transition);
             color:var(--text-main);
         }
@@ -610,100 +586,49 @@
             margin-bottom: var(--space-md);
             display: none;
         }
-        
+        .loading-spin{
+            width:24px;height:24px;
+            border:2px solid var(--blue-light);
+            border-top-color:var(--apple-blue);
+            border-radius:50%;
+            animation:spin 0.8s linear infinite;
+        }
+        @keyframes spin{
+            to{transform:rotate(360deg);}
+        }
         @media (max-width: 768px) {
             body {
                 flex-direction: column;
-                height: 100dvh;
-                overflow: hidden; 
-            }
-            #btnMobileMenu {
-                display: block !important;
-                margin-bottom: var(--space-sm);
+                overflow: auto;
+                height:auto;
             }
             .sidebar {
-                position: fixed;
-                top: 0;
-                left: -320px;
-                height: 100%;
-                width: 85%;
-                max-width: 320px;
-                z-index: 1001;
-                box-shadow: 4px 0 24px rgba(0,0,0,0.2);
-                transition: left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            }
-            .sidebar.mobile-open {
-                left: 0;
+                width: 100%;
+                height: auto;
             }
             .main-content {
-                width: 100%;
-                padding: var(--space-sm);
-            }
-            .top-toolbar {
-                flex-direction: column;
-                align-items: stretch;
                 padding: var(--space-md);
-            }
-            .mode-switch {
-                display: flex;
-                width: 100%;
-                gap: 4px;
-            }
-            .mode-btn {
-                flex: 1;
-                padding: 10px 4px;
-                font-size: 13px;
-                text-align: center;
-            }
-            .action-btns {
-                display: flex;
-                width: 100%;
-                justify-content: space-between;
-            }
-            .action-btns button {
-                flex: 1;
             }
             .group-header{
                 flex-direction:column;
-                gap:var(--space-md);
-                padding: var(--space-lg);
+                gap:var(--space-lg);
             }
-            .title-area h2 {
-                font-size: 26px;
-                word-break: break-all;
-            }
-            .pinyin-sub { font-size: 16px; }
             .contrastGrid {
                 grid-template-columns: 1fr;
             }
-            .section-card {
-                padding: var(--space-lg);
-            }
-            .btn-option {
-                min-width: unset;
-                width: 100%;
-                flex: unset;
-            }
-            .word-item-header { flex-wrap: wrap; gap: 4px; }
         }
     </style>
 </head>
 <body data-theme="light">
-    <!-- 手机端遮罩层 -->
-    <div class="modal-overlay" id="mobileOverlay" style="z-index:1000;" onclick="toggleMobileMenu(false)"></div>
-
     <div class="sidebar" id="sidebarWrap">
         <div class="brand">
             同义词辨析学习系统
             <button class="theme-switch" onclick="toggleTheme()">切换深色</button>
         </div>
-        <!-- 统计看板，包含累计访客数 (UV) 与 累计访问量 (PV) -->
         <div class="stats-banner">
             <span>总组数: <strong id="progressText">0 / 0</strong></span>
             <span>熟练度: <strong id="masterPercent">0%</strong></span>
-            <span>错题数: <strong id="wrongCount">0</strong></span>
-            <span>访客数: <strong id="busuanzi_value_site_uv">--</strong></span>
-            <span style="grid-column: span 2;">全网累计访问: <strong id="busuanzi_value_site_pv">--</strong> 次</span>
+            <span>错题: <strong id="wrongCount">0</strong></span>
         </div>
         <div class="search-box">
             <input type="text" id="searchInput" class="search-input" placeholder="搜索词语/拼音/释义/题目..." oninput="debounceRenderWordList()">
@@ -717,29 +642,26 @@
         </div>
         <div class="word-list" id="wordList"></div>
     </div>
-    
     <div class="main-content">
         <div class="top-toolbar">
-            <button id="btnMobileMenu" onclick="toggleMobileMenu(true)">☰ 展开词条列表</button>
             <div class="mode-switch">
                 <button class="mode-btn active" id="btnStudyMode" onclick="switchMode('study')">学习对比模式</button>
                 <button class="mode-btn" id="btnQuizMode" onclick="switchMode('quiz')">专注刷题模式</button>
                 <button class="mode-btn" id="btnWrongBook" onclick="switchMode('wrong')">错题本</button>
             </div>
             <div class="action-btns">
-                <button class="btn-primary" onclick="openImportModal()">导入题库</button>
+                <button class="btn-primary" onclick="openImportModal()">导入JSON题库</button>
                 <button class="btn-secondary" onclick="clearDatabase()">清空重置</button>
                 <button class="btn-secondary" id="fullQuizBtn" style="display:none" onclick="toggleFullQuiz()">全屏刷题</button>
             </div>
         </div>
-        
         <div id="studyHeader">
             <div class="group-header">
                 <div class="title-area">
                     <h2 id="groupTitle">请导入或选择近义词</h2>
                     <div class="pinyin-sub" id="groupPinyin"></div>
                 </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div style="display:flex;gap:10px;">
                     <button class="master-toggle-btn" id="starBtn" onclick="toggleStar()">
                         <span id="starIcon">○</span> 收藏
                     </button>
@@ -749,11 +671,14 @@
                 </div>
             </div>
         </div>
-        
         <div id="studyModeView">
             <div class="section-card">
                 <div class="section-title">辨识同异</div>
                 <div class="contrastGrid" id="contrastGrid"></div>
+            </div>
+            <div class="section-card" id="commonSection" style="display:none;">
+                <div class="section-title">相同之处</div>
+                <div id="commonContent"></div>
             </div>
             <div class="section-card">
                 <div class="section-title">常见组合</div>
@@ -764,11 +689,10 @@
                 <div id="quizContainer"></div>
             </div>
         </div>
-        
         <div id="globalQuizView" class="section-card" style="display:none;">
             <div class="section-title">
                 随机刷题
-                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div style="display:flex;gap:10px;">
                     <button class="btn-secondary" onclick="restartQuiz()">重新随机</button>
                     <button class="btn-secondary" onclick="setQuizPool('all')">全部题目</button>
                 </div>
@@ -776,13 +700,11 @@
             <div class="quiz-wrap" id="globalQuizBox"></div>
             <div class="load-more-tip" id="loadMoreTip">向下滚动加载更多题目</div>
         </div>
-        
         <div id="wrongBookView" class="section-card" style="display:none;">
             <div class="section-title">错题本 <button class="btn-danger" onclick="clearAllWrong()">清空所有错题</button></div>
             <div id="wrongListBox" class="wrong-list-box"></div>
         </div>
     </div>
-    
     <div class="modal-overlay" id="importModal">
         <div class="modal">
             <h3>导入/追加题库数据</h3>
@@ -799,7 +721,6 @@
             </div>
         </div>
     </div>
-    
     <script>
         const QUIZ_PAGE_SIZE = 20;
         const initialData = [
@@ -822,43 +743,42 @@
         ];
 
         let database = JSON.parse(localStorage.getItem('synonym_db')) || initialData;
-        
-        let wrongQuestionsRaw = JSON.parse(localStorage.getItem('wrong_questions')) || [];
-        let wrongQuestions = wrongQuestionsRaw.filter(w => w.groupId != null).map(w => {
-            if (w.qIndex === undefined && w.qIdx !== undefined) {
-                w.qIndex = w.qIdx;
-                delete w.qIdx;
-            }
-            return w;
-        });
-        
-        let masteredIds = new Set((JSON.parse(localStorage.getItem('mastered_ids')) || []).filter(id => id != null));
-        let starIds = new Set((JSON.parse(localStorage.getItem('star_ids')) || []).filter(id => id != null));
-        
+        let masteredIds = new Set(JSON.parse(localStorage.getItem('mastered_ids')) || []);
+        let wrongQuestions = JSON.parse(localStorage.getItem('wrong_questions')) || [];
+        let starIds = new Set(JSON.parse(localStorage.getItem('star_ids')) || []);
         let lastMode = localStorage.getItem('lastMode') || 'study';
         let lastQuizIndex = Number(localStorage.getItem('lastQuizIndex')) || 0;
         let quizListCache = [];
         let renderedQuizCount = 0;
         let quizPoolType = 'all';
-        let currentId = null;
+        let currentIndex = 0;
         let activeCategory = 'all';
         let isFullQuizMode = false;
         let debounceTimer = null;
         let scrollListenerBound = false;
 
+        // ====================== 【修改核心】去重相关函数 ======================
+        
+        // 判断 smallWords 是否完全是 bigWords 的子集
         function isWordSubset(smallWords, bigWords) {
             return smallWords.every(word => bigWords.includes(word));
         }
 
+        // 数据库去重：
+        // 1. 词条内容完全相同（顺序不同）视为重复，保留先出现的条目
+        // 2. 某一词组被另一更长词组完全包含时，保留词数更多的条目
         function deduplicateDatabase() {
+            // 第一步：无序完全相同去重
             const seenMap = new Map();
             database.forEach(item => {
-                const sortedKey = [...(item.words || [])].sort().join(',');
+                const sortedKey = [...item.words].sort().join(',');
                 if (!seenMap.has(sortedKey)) {
                     seenMap.set(sortedKey, item);
                 }
             });
             const uniqueByContent = [...seenMap.values()];
+
+            // 第二步：子集包含去重，保留词条数量更多的
             const result = [];
             for (let i = 0; i < uniqueByContent.length; i++) {
                 const current = uniqueByContent[i];
@@ -866,30 +786,20 @@
                 for (let j = 0; j < uniqueByContent.length; j++) {
                     if (i === j) continue;
                     const other = uniqueByContent[j];
-                    if (other.words && current.words && other.words.length > current.words.length && isWordSubset(current.words, other.words)) {
+                    if (other.words.length > current.words.length && isWordSubset(current.words, other.words)) {
                         isSubsumed = true;
                         break;
                     }
                 }
-                if (!isSubsumed) result.push(current);
-            }
-            database = result;
-
-            let maxId = 0;
-            database.forEach(item => {
-                if (typeof item.id === 'number' && item.id > maxId) maxId = item.id;
-            });
-            const seenIds = new Set();
-            database.forEach(item => {
-                if (typeof item.id !== 'number' || isNaN(item.id) || seenIds.has(item.id)) {
-                    maxId++;
-                    item.id = maxId;
+                if (!isSubsumed) {
+                    result.push(current);
                 }
-                seenIds.add(item.id);
-            });
+            }
+
+            database = result;
         }
-        
-        deduplicateDatabase(); 
+
+        // ====================== 以下为原有功能代码 ======================
 
         function saveAllStorage(){
             localStorage.setItem('synonym_db', JSON.stringify(database));
@@ -904,19 +814,6 @@
             const body = document.body;
             const cur = body.getAttribute('data-theme');
             body.setAttribute('data-theme', cur === 'light' ? 'dark' : 'light');
-        }
-        
-        function toggleMobileMenu(forceOpen) {
-            const sidebar = document.getElementById('sidebarWrap');
-            const overlay = document.getElementById('mobileOverlay');
-            const isOpen = forceOpen !== undefined ? forceOpen : !sidebar.classList.contains('mobile-open');
-            if(isOpen){
-                sidebar.classList.add('mobile-open');
-                overlay.style.display = 'block';
-            }else{
-                sidebar.classList.remove('mobile-open');
-                overlay.style.display = 'none';
-            }
         }
 
         function debounceRenderWordList(){
@@ -933,38 +830,34 @@
             return copy;
         }
 
-        function isQuestionWrong(groupId, qIndex){
-            return wrongQuestions.some(w => w.groupId === groupId && w.qIndex === qIndex);
+        function isQuestionWrong(groupId,qIdx){
+            return wrongQuestions.some(w=>w.groupId===groupId && w.qIndex===qIdx);
         }
 
-        function addWrongQuestion(groupId, qIndex){
-            const exist = wrongQuestions.find(w => w.groupId === groupId && w.qIndex === qIndex);
+        function addWrongQuestion(groupId,qIdx){
+            const exist = wrongQuestions.find(w=>w.groupId===groupId && w.qIndex===qIdx);
             if(exist){
                 exist.wrongTimes++;
             }else{
-                wrongQuestions.push({groupId, qIndex, wrongTimes:1});
+                wrongQuestions.push({groupId,qIdx,wrongTimes:1});
             }
             saveAllStorage();
             updateStat();
         }
 
         function clearGroupWrong(gid){
-            wrongQuestions = wrongQuestions.filter(w => w.groupId !== gid);
+            wrongQuestions = wrongQuestions.filter(w=>w.groupId !== gid);
             saveAllStorage();
             updateStat();
         }
 
         function init(){
-            switchMode(lastMode, false);
-            if(database.length > 0){
-                if (!currentId || !database.some(d => d.id === currentId)) {
-                    currentId = database[0].id;
-                }
-                selectWord(currentId);
-            }else {
-                clearStudyView();
-                renderWordList();
-            }
+            switchMode(lastMode,false);
+            renderWordList();
+            if(database.length>0){
+                currentIndex = Math.min(currentIndex,database.length-1);
+                selectWord(currentIndex);
+            }else clearStudyView();
             updateStat();
             bindScrollListener();
         }
@@ -993,22 +886,17 @@
                 return text.includes(kw);
             });
             filterData.sort((a,b)=> a.words[0].localeCompare(b.words[0], 'zh-Hans-CN-u-co-pinyin'));
-            
             if(filterData.length === 0){
                 wrap.innerHTML = '<div class="empty-card">暂无匹配词组</div>';
                 return;
             }
-            
             filterData.forEach(item=>{
+                const idx = database.findIndex(d=>d.id === item.id);
                 const isMaster = masteredIds.has(item.id);
                 const isStar = starIds.has(item.id);
                 const dom = document.createElement('div');
-                dom.className = `word-item ${item.id === currentId ? 'active' : ''}`;
-                dom.onclick = ()=>{
-                    switchMode('study',false);
-                    selectWord(item.id);
-                    if(window.innerWidth <= 768) toggleMobileMenu(false);
-                };
+                dom.className = `word-item ${idx === currentIndex ? 'active' : ''}`;
+                dom.onclick = ()=>{switchMode('study',false);selectWord(idx);};
                 let tagHtml = '';
                 if(isMaster) tagHtml += '<span class="badge-master">已掌握</span>';
                 if(isStar) tagHtml += '<span class="badge-star">收藏</span>';
@@ -1017,26 +905,23 @@
                         <span class="word-item-title">${item.words.join(' - ')}</span>
                         ${tagHtml}
                     </div>
-                    <div class="word-item-meta">${item.category} · ${(item.quizzes || []).length}题</div>
+                    <div class="word-item-meta">${item.category} · ${item.quizzes.length}题</div>
                 `;
                 wrap.appendChild(dom);
             });
         }
 
-        function selectWord(id){
-            const item = database.find(d => d.id === id);
-            if(!item) return;
-            currentId = id;
+        function selectWord(idx){
+            if(idx<0||idx>=database.length) return;
+            currentIndex = idx;
+            const item = database[currentIndex];
             renderWordList();
-
             document.getElementById('groupTitle').innerText = item.words.join(' - ');
-            document.getElementById('groupPinyin').innerText = `[${item.pinyin || ''}]`;
-            
+            document.getElementById('groupPinyin').innerText = `[${item.pinyin}]`;
             const masterBtn = document.getElementById('masterToggleBtn');
             const masterIcon = document.getElementById('masterIcon');
             const masterText = document.getElementById('masterText');
             const starIcon = document.getElementById('starIcon');
-            
             masterBtn.classList.toggle('is-master', masteredIds.has(item.id));
             masterIcon.innerText = masteredIds.has(item.id) ? '●' : '○';
             masterText.innerText = masteredIds.has(item.id) ? '已掌握' : '标记为已掌握';
@@ -1047,7 +932,7 @@
                 contrastWrap.innerHTML = item.contrast.map(c => `
                     <div class="contrast-box">
                         <h4>${c.word}</h4>
-                        <p>${c.meaning}</p>
+                        <p style="white-space:pre-wrap;">${c.meaning}</p>
                         <ul class="example-list">${c.examples.map(e=>`<li>${e}</li>`).join('')}</ul>
                     </div>
                 `).join('');
@@ -1055,24 +940,39 @@
                 contrastWrap.innerHTML = '<p style="color:var(--text-secondary);">暂无词义对比</p>';
             }
 
+            renderCommonGroup(item);
+
             const collWrap = document.getElementById('collocationGroup');
+            let collTags = '';
+            // 新结构：每词组合（contrast[].collocations）；共同搭配在“相同之处”板块展示
+            if (Array.isArray(item.contrast)) {
+                item.contrast.forEach(c => {
+                    if (c.collocations && String(c.collocations).trim()) {
+                        collTags += `<span class="collocation-tag"><b>${c.word}</b> ${c.collocations}</span>`;
+                    }
+                });
+            }
+            // 旧结构兼容：词条级 collocations 数组
             if (item.collocations && item.collocations.length > 0) {
-                collWrap.innerHTML = item.collocations.map(c => `<span class="collocation-tag">${c}</span>`).join('');
+                collTags += item.collocations.map(c => `<span class="collocation-tag">${c}</span>`).join('');
+            }
+            if (collTags.trim()) {
+                collWrap.innerHTML = collTags;
             } else {
                 collWrap.innerHTML = '<p style="color:var(--text-secondary);">暂无常用搭配</p>';
             }
 
             const quizWrap = document.getElementById('quizContainer');
             if (item.quizzes && item.quizzes.length > 0) {
-                quizWrap.innerHTML = item.quizzes.map((q, qIndex) => {
-                    const isW = isQuestionWrong(item.id, qIndex);
+                quizWrap.innerHTML = item.quizzes.map((q, qIdx) => {
+                    const isW = isQuestionWrong(item.id,qIdx);
                     return `
                     <div style="margin-bottom:24px;padding:22px;background:var(--page-bg);border-radius:var(--radius-md);">
                         <div style="font-size:17px;font-weight:500;margin-bottom:16px;">${q.question} ${isW?'<span style="color:var(--apple-red)">（曾答错）</span>':''}</div>
                         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;">
-                            ${q.options.map(opt=>`<button class="btn-option" onclick="singleAnswer(${item.id},${qIndex},'${opt}',this)">${opt}</button>`).join('')}
+                            ${q.options.map(opt=>`<button class="btn-option" onclick="singleAnswer(${idx},${qIdx},'${opt}',this)">${opt}</button>`).join('')}
                         </div>
-                        <div id="exp-${item.id}-${qIndex}" style="display:none;padding:16px;background:#fff;border-left:2px solid var(--apple-blue);margin-top:10px;color:var(--text-secondary);">
+                        <div id="exp-${idx}-${qIdx}" style="display:none;padding:16px;background:#fff;border-left:2px solid var(--apple-blue);margin-top:10px;color:var(--text-secondary);">
                             <strong>解析：</strong>${q.explanation}
                         </div>
                     </div>`;
@@ -1082,10 +982,32 @@
             }
         }
 
-        function singleAnswer(itemId, qIndex, selOpt, btn) {
-            const group = database.find(d => d.id === itemId);
-            if(!group) return;
-            const q = group.quizzes[qIndex];
+        function renderCommonGroup(item){
+            const sec = document.getElementById('commonSection');
+            const box = document.getElementById('commonContent');
+            if (!sec || !box) return;
+            const common = (item && item.common && typeof item.common === 'object') ? item.common : {};
+            const meaning  = String(common.meaning  || '').trim();
+            const examples = Array.isArray(common.examples)
+                ? common.examples.map(e => String(e).trim()).filter(Boolean)
+                : [];
+            const colloc   = String(common.collocations || '').trim();
+            if (!meaning && examples.length === 0 && !colloc) {
+                sec.style.display = 'none';
+                box.innerHTML = '';
+                return;
+            }
+            sec.style.display = '';
+            let html = '';
+            if (meaning) html += `<p class="common-meaning">${meaning}</p>`;
+            if (examples.length) html += `<ul class="example-list">${examples.map(e=>`<li>${e}</li>`).join('')}</ul>`;
+            if (colloc) html += `<div class="common-colloc-row"><span class="coll-label">典型共同搭配：</span><span class="collocation-tag">${colloc}</span></div>`;
+            box.innerHTML = html;
+        }
+
+        function singleAnswer(itemIdx, qIdx, selOpt, btn) {
+            const group = database[itemIdx];
+            const q = group.quizzes[qIdx];
             const btns = btn.parentElement.querySelectorAll('.btn-option');
             btns.forEach(b => {
                 b.disabled = true;
@@ -1093,25 +1015,25 @@
             });
             if (selOpt !== q.answer) {
                 btn.classList.add('selected-wrong');
-                addWrongQuestion(group.id, qIndex);
+                addWrongQuestion(group.id,qIdx);
             }
-            document.getElementById(`exp-${itemId}-${qIndex}`).style.display = 'block';
+            document.getElementById(`exp-${itemIdx}-${qIdx}`).style.display = 'block';
         }
 
         function toggleStar(){
-            if(!currentId) return;
-            starIds.has(currentId) ? starIds.delete(currentId) : starIds.add(currentId);
+            const gid = database[currentIndex].id;
+            starIds.has(gid) ? starIds.delete(gid) : starIds.add(gid);
             saveAllStorage();
-            selectWord(currentId);
+            selectWord(currentIndex);
         }
 
         function toggleMaster() {
-            if(!currentId) return;
-            if (masteredIds.has(currentId)) masteredIds.delete(currentId);
-            else masteredIds.add(currentId);
-            clearGroupWrong(currentId);
+            const item = database[currentIndex];
+            if (masteredIds.has(item.id)) masteredIds.delete(item.id);
+            else masteredIds.add(item.id);
+            clearGroupWrong(item.id);
             saveAllStorage();
-            selectWord(currentId);
+            selectWord(currentIndex);
             updateStat();
         }
 
@@ -1143,7 +1065,6 @@
             document.getElementById('btnStudyMode').classList.toggle('active', mode === 'study');
             document.getElementById('btnQuizMode').classList.toggle('active', mode === 'quiz');
             document.getElementById('btnWrongBook').classList.toggle('active', mode === 'wrong');
-            
             document.getElementById('studyHeader').style.display = mode === 'study' ? 'flex' : 'none';
             document.getElementById('studyModeView').style.display = mode === 'study' ? 'block' : 'none';
             document.getElementById('globalQuizView').style.display = mode === 'quiz' ? 'block' : 'none';
@@ -1185,13 +1106,11 @@
                 const isGroupMaster = masteredIds.has(g.id);
                 if(quizPoolType === 'wrong' && !isGroupWrong) return;
                 if(quizPoolType === 'master' && isGroupMaster) return;
-                g.quizzes.forEach((q, qIndex) => {
-                    const wItem = wrongQuestions.find(w=>w.groupId === g.id && w.qIndex === qIndex);
+                g.quizzes.forEach((q,qIdx) => {
+                    const wItem = wrongQuestions.find(w=>w.groupId === g.id && w.qIndex === qIdx);
                     let weight = 1;
                     if(wItem) weight += wItem.wrongTimes*2;
-                    for(let i=0; i<weight; i++) {
-                        rawPool.push({ groupId: g.id, groupName: g.words.join('、'), q, qIndex });
-                    }
+                    for(let i=0;i<weight;i++) rawPool.push({ groupId: g.id, groupName: g.words.join('、'), q, qIdx });
                 });
             });
 
@@ -1267,7 +1186,7 @@
             });
             if (selOpt !== q.answer) {
                 btn.classList.add('selected-wrong');
-                addWrongQuestion(item.groupId, item.qIndex);
+                addWrongQuestion(item.groupId, item.qIdx);
             }
             document.getElementById(`q-exp-${idx}`).style.display = 'block';
             lastQuizIndex = idx;
@@ -1284,12 +1203,13 @@
             }
             let html = '';
             wrongData.forEach(g=>{
+                const idx = database.findIndex(d=>d.id === g.id);
                 html += `
                 <div class="contrast-box">
                     <h4>${g.words.join(' - ')}【${g.category}】</h4>
-                    <p style="margin:8px 0 14px;">${g.pinyin || ''}</p>
+                    <p style="margin:8px 0 14px;">${g.pinyin}</p>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                        <button class="btn-secondary" onclick="switchMode('study',false);selectWord(${g.id})">前往学习</button>
+                        <button class="btn-secondary" onclick="switchMode('study',false);selectWord(${idx})">前往学习</button>
                         <button class="btn-danger" onclick="clearGroupWrong(${g.id});renderWrongBook();">清空本组错题</button>
                     </div>
                 </div>`;
@@ -1313,6 +1233,9 @@
             document.getElementById('groupTitle').innerText = '请导入或选择近义词';
             document.getElementById('groupPinyin').innerText = '';
             document.getElementById('contrastGrid').innerHTML = '';
+            document.getElementById('commonContent').innerHTML = '';
+            const commonSec = document.getElementById('commonSection');
+            if (commonSec) commonSec.style.display = 'none';
             document.getElementById('collocationGroup').innerHTML = '';
             document.getElementById('quizContainer').innerHTML = '';
         }
@@ -1347,14 +1270,20 @@
                 const rawAll = JSON.parse(wrapText);
                 if (!Array.isArray(rawAll)) throw new Error("解析结果非数组");
                 const mode = document.querySelector('input[name="importMode"]:checked').value;
-                let maxId = database.length > 0 ? Math.max(...database.map(d => d.id || 0)) : 0;
+                let maxId = database.length > 0 ? Math.max(...database.map(d => d.id)) : 0;
                 const safeData = rawAll.map(item => {
                     maxId++;
+                    const itemCommon = (item.common && typeof item.common === 'object') ? item.common : {};
                     return {
                         id: maxId,
                         words: Array.isArray(item.words) ? item.words : ['词组'],
                         pinyin: item.pinyin || '',
                         category: item.category || '通用',
+                        common: {
+                            meaning: String(itemCommon.meaning || ''),
+                            examples: Array.isArray(itemCommon.examples) ? itemCommon.examples : [],
+                            collocations: String(itemCommon.collocations || '')
+                        },
                         contrast: Array.isArray(item.contrast) ? item.contrast : [],
                         collocations: Array.isArray(item.collocations) ? item.collocations : [],
                         quizzes: Array.isArray(item.quizzes) ? item.quizzes : []
@@ -1376,10 +1305,8 @@
                 document.getElementById('jsonInput').value = '';
                 closeImportModal();
                 alert(`成功导入并去重，当前共${database.length}组词组`);
-                
-                if (database.length > 0) {
-                    currentId = database[database.length - 1].id;
-                }
+                currentIndex = mode === 'replace' ? 0 : database.length - 1;
+                updateStat();
                 init();
             } catch (e) {
                 errorEl.innerText = "JSON解析失败：" + e.message + "，请检查格式";
@@ -1388,6 +1315,9 @@
             }
         }
 
+// ====================== 自动加载同级目录下的 dictionary.json ======================
+        // dictionary.json 当前由多个数组直接拼接而成（例如 ][）。先尝试标准 JSON，
+        // 失败后按顶层括号边界逐段解析，兼容单数组和拼接数组两种文件格式。
         function parseDictionaryText(text) {
             const source = String(text || '').replace(/^\uFEFF/, '').trim();
             if (!source) throw new Error('dictionary.json 内容为空');
@@ -1449,7 +1379,9 @@
             }
         }
 
-        function loadDictionaryViaIframe(url, timeoutDuration = 5000) {
+        // 某些浏览器禁止 file:// 页面通过 fetch 读取同目录文件。隐藏 iframe
+        // 仍可在允许本地文档访问的浏览器中读取文本，因此作为兼容性回退。
+        function loadDictionaryViaIframe(url) {
             return new Promise((resolve, reject) => {
                 const frame = document.createElement('iframe');
                 let finished = false;
@@ -1462,9 +1394,7 @@
                     cleanup();
                     reject(error);
                 };
-                
-                const timer = setTimeout(() => fail(new Error('无法读取本地 dictionary.json')), timeoutDuration);
-                
+                const timer = setTimeout(() => fail(new Error('无法读取本地 dictionary.json')), 5000);
                 frame.onload = () => {
                     if (finished) return;
                     try {
@@ -1493,31 +1423,25 @@
 
         function loadLocalDictionary() {
             const hasData = localStorage.getItem('synonym_db');
-            const isLocalFile = location.protocol === 'file:';
             const dictionaryUrl = new URL('./dictionary.json', document.baseURI);
-            
-            if (!isLocalFile) {
-                dictionaryUrl.searchParams.set('_', Date.now());
-            }
+            // 使用时间戳防止 GitHub Pages 缓存，确保读取到最新提交的 JSON。
+            dictionaryUrl.searchParams.set('_', Date.now());
 
-            const fetchPromise = isLocalFile 
-                ? Promise.reject(new Error('本地 file:// 协议跳过 fetch'))
-                : fetch(dictionaryUrl.href, { cache: 'no-store' }).then(response => {
+            const loadByFetch = fetch(dictionaryUrl.href, { cache: 'no-store' })
+                .then(response => {
                     if (!response.ok) throw new Error('网络响应异常，未找到 dictionary.json');
                     return response.text();
-                });
-
-            fetchPromise
-                .then(parseDictionaryText)
-                .catch(fetchError => {
-                    const timeoutMs = isLocalFile ? 800 : 5000;
-                    return loadDictionaryViaIframe(dictionaryUrl, timeoutMs).catch(iframeError => {
-                        iframeError.message = `${fetchError.message}；${iframeError.message}`;
-                        throw iframeError;
-                    });
                 })
+                .then(parseDictionaryText);
+
+            loadByFetch
+                .catch(fetchError => loadDictionaryViaIframe(dictionaryUrl).catch(iframeError => {
+                    iframeError.message = `${fetchError.message}；${iframeError.message}`;
+                    throw iframeError;
+                }))
                 .then(data => {
                     if (Array.isArray(data) && data.length > 0) {
+                        // 首次访问使用 JSON；已有本地记录时合并并沿用现有去重规则。
                         database = hasData ? [...database, ...data] : data;
                         deduplicateDatabase();
                         saveAllStorage();
@@ -1525,7 +1449,7 @@
                     init();
                 })
                 .catch(error => {
-                    console.warn('dictionary.json 快速探测结束：无法自动加载本地文件，将使用本地已有缓存或默认题库。', error);
+                    console.error('dictionary.json 加载失败，将使用本地已有数据或默认题库。', error);
                     init();
                 });
         }
