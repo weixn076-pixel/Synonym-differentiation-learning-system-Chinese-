@@ -285,7 +285,7 @@
     .quiz-answer.show { display: block; }
     .quiz-answer strong { color: var(--ink); }
 
-    .practice-view, .saved-view, .ai-view, .admin-view { max-width: 980px; margin: 0 auto; padding: 30px 34px 100px; }
+    .practice-view, .saved-view, .notes-view, .ai-view, .admin-view { max-width: 980px; margin: 0 auto; padding: 30px 34px 100px; }
     .view-header { margin-bottom: 22px; }
     .view-header h1 { margin: 0; font-size: 27px; }
     .view-header p { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
@@ -312,7 +312,11 @@
     .ai-submit { min-height: 42px; padding: 0 16px; border: 1px solid var(--green); border-radius: 7px; background: var(--green); color: #fff; display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; cursor: pointer; }
     .ai-submit:disabled { opacity: .58; cursor: wait; }
     .ai-result { margin-top: 18px; padding: 22px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
-    .ai-result h2 { margin: 0 0 13px; font-size: 18px; }
+    .ai-result h2 { margin: 0; font-size: 18px; }
+    .ai-result-head { margin-bottom: 13px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .ai-note-button { min-height: 37px; padding: 0 12px; border: 1px solid var(--green); border-radius: 6px; background: var(--green-soft); color: var(--green); display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .ai-note-button:disabled { opacity: .58; cursor: default; }
+    .ai-note-button .icon { width: 17px; height: 17px; }
     .ai-result-copy { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font-size: 14px; line-height: 1.9; }
     .ai-error { border-color: rgba(185,71,63,.35); background: var(--red-soft); }
     .admin-controls { margin-bottom: 22px; padding: 22px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
@@ -341,11 +345,53 @@
     .invite-meta { color: var(--muted); font-size: 11px; line-height: 1.5; }
     .invite-action { min-width: 56px; min-height: 32px; padding: 0 9px; border: 1px solid var(--line-strong); border-radius: 6px; background: #fff; color: var(--muted); font-size: 11px; cursor: pointer; }
     .invite-action:hover { border-color: var(--red); color: var(--red); }
-    .saved-list { display: grid; gap: 9px; }
-    .saved-item { padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+    .admin-section-tabs { display: flex; gap: 5px; margin-bottom: 22px; padding: 4px; border-radius: 7px; background: var(--surface-strong); }
+    .admin-section-tab { min-height: 38px; padding: 0 15px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; }
+    .admin-section-tab.active { background: var(--surface); color: var(--green); box-shadow: 0 1px 5px rgba(24,33,29,.08); }
+    .analytics-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 22px; }
+    .analytics-metric { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); }
+    .analytics-metric-label { color: var(--muted); font-size: 11px; }
+    .analytics-metric-value { margin-top: 3px; color: var(--ink); font-size: 24px; line-height: 1.3; font-weight: 750; overflow-wrap: anywhere; }
+    .analytics-metric-note { margin-top: 3px; color: var(--faint); font-size: 10px; }
+    .analytics-section { margin-top: 22px; }
+    .analytics-section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+    .analytics-section-head h2 { margin: 0; font-size: 17px; }
+    .analytics-section-head p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .analytics-chart { height: 190px; padding: 16px 12px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); display: grid; grid-template-columns: repeat(14,minmax(14px,1fr)); align-items: end; gap: 7px; overflow-x: auto; }
+    .analytics-day { min-width: 14px; height: 100%; display: grid; grid-template-rows: minmax(0,1fr) 17px; gap: 5px; align-items: end; }
+    .analytics-bar-wrap { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+    .analytics-bar { width: min(20px,80%); min-height: 3px; border-radius: 3px 3px 1px 1px; background: var(--green); }
+    .analytics-day-label { overflow: hidden; color: var(--faint); font-size: 9px; text-align: center; white-space: nowrap; }
+    .user-table-wrap { border: 1px solid var(--line); border-radius: 7px; background: var(--surface); overflow-x: auto; }
+    .user-table { width: 100%; min-width: 830px; border-collapse: collapse; font-size: 12px; }
+    .user-table th { padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface-soft); color: var(--muted); font-size: 10px; font-weight: 700; text-align: left; white-space: nowrap; }
+    .user-table td { padding: 12px; border-bottom: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+    .user-table tr:last-child td { border-bottom: 0; }
+    .user-name { color: var(--ink); font-weight: 700; }
+    .admin-badge { margin-left: 6px; padding: 2px 5px; border-radius: 4px; background: var(--blue-soft); color: var(--blue); font-size: 9px; }
+    .analytics-loading { padding: 58px 20px; border: 1px dashed var(--line-strong); border-radius: 7px; color: var(--muted); text-align: center; }
+    .saved-list { width: 100%; display: grid; grid-template-columns: minmax(0,1fr); gap: 9px; }
+    .saved-item { width: 100%; min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; cursor: pointer; }
+    .saved-item > span { min-width: 0; }
     .saved-item:hover { border-color: var(--green); }
-    .saved-item h3 { margin: 0; font-size: 16px; }
-    .saved-item p { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+    .saved-item h3 { margin: 0; overflow-wrap: anywhere; font-size: 16px; }
+    .saved-item p { margin: 3px 0 0; overflow-wrap: anywhere; color: var(--muted); font-size: 11px; }
+    .saved-item > .icon { flex: 0 0 auto; transform: rotate(180deg); }
+    .notes-compose { margin-bottom: 18px; padding: 22px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
+    .notes-compose h2 { margin: 0 0 15px; font-size: 18px; }
+    .note-form-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+    .notes-list { width: 100%; display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; }
+    .note-card { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    .note-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .note-card-title { min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: 17px; }
+    .note-actions { flex: 0 0 auto; display: flex; gap: 3px; }
+    .note-icon-button { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; }
+    .note-icon-button:hover { background: var(--surface-strong); color: var(--green); }
+    .note-icon-button.danger:hover { background: var(--red-soft); color: var(--red); }
+    .note-icon-button .icon { width: 17px; height: 17px; }
+    .note-meta { margin-top: 3px; color: var(--faint); font-size: 11px; }
+    .note-content { margin: 14px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font-size: 13px; line-height: 1.85; }
+    .notes-loading { padding: 40px 20px; color: var(--muted); text-align: center; }
     .empty-state { padding: 56px 22px; border: 1px dashed var(--line-strong); border-radius: 8px; text-align: center; color: var(--muted); }
     .empty-state .icon { width: 30px; height: 30px; margin: 0 auto 11px; color: var(--faint); }
     .auth-modal { position: fixed; inset: 0; z-index: 120; padding: 18px; background: rgba(24,33,29,.38); display: none; place-items: center; }
@@ -383,7 +429,7 @@
       .account-user { max-width: 76px; }
       .account-button { padding: 0 8px; }
       .nav-button { padding: 0 8px; gap: 7px; }
-      .detail-view, .practice-view, .saved-view, .ai-view, .admin-view { padding-left: 26px; padding-right: 26px; }
+      .detail-view, .practice-view, .saved-view, .notes-view, .ai-view, .admin-view { padding-left: 26px; padding-right: 26px; }
       .jump-tabs { margin-left: -26px; margin-right: -26px; padding-left: 26px; padding-right: 26px; }
     }
 
@@ -402,6 +448,7 @@
       body[data-mobile-view="detail"] .workspace,
       body[data-mobile-view="practice"] .workspace,
       body[data-mobile-view="saved"] .workspace,
+      body[data-mobile-view="notes"] .workspace,
       body[data-mobile-view="ai"] .workspace,
       body[data-mobile-view="admin"] .workspace { display: flex; }
       .mobile-topbar {
@@ -410,6 +457,8 @@
         display: grid; grid-template-columns: 42px minmax(0,1fr) 42px; align-items: center;
       }
       .mobile-topbar-title { overflow: hidden; text-align: center; font-size: 15px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+      .mobile-topbar > div:last-child { width: 42px; height: 42px; display: grid; place-items: center; }
+      .mobile-topbar > div:last-child > * { grid-area: 1 / 1; }
       .mobile-topbar .mobile-account { display: flex; justify-content: flex-end; }
       .mobile-topbar .mobile-account .account-button { width: 38px; height: 38px; min-height: 0; padding: 0; }
       .mobile-topbar .mobile-account [data-open-admin] { display: none; }
@@ -426,7 +475,7 @@
       .word-item { height: 70px; padding: 11px 13px; }
       .word-name { font-size: 16px; }
       .content-scroll { background: var(--bg); }
-      .detail-view, .practice-view, .saved-view, .ai-view, .admin-view { max-width: none; padding: 19px 16px 92px; }
+      .detail-view, .practice-view, .saved-view, .notes-view, .ai-view, .admin-view { max-width: none; padding: 19px 16px 92px; }
       .word-hero { padding: 0 0 18px; }
       .word-title { font-size: clamp(32px, 10vw, 42px); overflow-wrap: anywhere; }
       .word-pinyin { font-size: 13px; }
@@ -448,9 +497,12 @@
       .practice-card { padding: 17px 15px; box-shadow: none; }
       .practice-question { font-size: 16px; }
       .practice-set-actions { align-items: stretch; flex-direction: column; }
-      .ai-form, .ai-result { padding: 17px; box-shadow: none; }
+      .ai-form, .ai-result, .notes-compose { padding: 17px; box-shadow: none; }
       .ai-form-footer { align-items: stretch; flex-direction: column; }
       .ai-submit { justify-content: center; }
+      .ai-result-head { align-items: flex-start; flex-direction: column; }
+      .ai-note-button { width: 100%; justify-content: center; }
+      .note-card { padding: 16px; }
       .admin-controls { padding: 16px; box-shadow: none; }
       .admin-form { grid-template-columns: 1fr 1fr; }
       .admin-field.wide, .admin-submit { grid-column: 1 / -1; }
@@ -459,13 +511,19 @@
       .invite-status, .invite-label { grid-column: 1; }
       .invite-row .invite-action { grid-column: 2; grid-row: 1 / span 2; }
       .invite-meta { grid-column: 1 / -1; }
+      .admin-section-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+      .analytics-metrics { grid-template-columns: 1fr 1fr; }
+      .analytics-metric { padding: 13px; }
+      .analytics-metric-value { font-size: 20px; }
+      .analytics-chart { gap: 5px; padding-left: 8px; padding-right: 8px; }
+      .analytics-section-head { align-items: flex-start; flex-direction: column; }
       .view-header h1 { font-size: 23px; }
       .mobile-bottom-nav {
         position: fixed; z-index: 70; left: 0; right: 0; bottom: 0; height: calc(62px + env(safe-area-inset-bottom));
         padding: 6px 10px env(safe-area-inset-bottom); border-top: 1px solid var(--line); background: rgba(255,255,255,.97);
-        display: grid; grid-template-columns: repeat(4, 1fr); align-items: stretch;
+        display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); align-items: stretch;
       }
-      .mobile-nav-button { border: 0; border-radius: 7px; background: transparent; color: var(--faint); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 600; }
+      .mobile-nav-button { min-width: 0; padding: 0 2px; border: 0; border-radius: 7px; background: transparent; color: var(--faint); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 10px; font-weight: 600; white-space: nowrap; }
       .mobile-nav-button .icon { width: 21px; height: 21px; }
       .mobile-nav-button.active { color: var(--green); }
       .toast { bottom: calc(74px + env(safe-area-inset-bottom)); }
@@ -497,6 +555,9 @@
         </button>
         <button class="nav-button" data-view="saved" type="button">
           <svg class="icon" aria-hidden="true"><use href="#i-star"></use></svg><span>我的收藏</span>
+        </button>
+        <button class="nav-button" data-view="notes" type="button">
+          <svg class="icon" aria-hidden="true"><use href="#i-note"></use></svg><span>我的笔记</span>
         </button>
         <button class="nav-button" data-view="ai" type="button">
           <svg class="icon" aria-hidden="true"><use href="#i-sparkles"></use></svg><span>智能辨析</span>
@@ -545,6 +606,7 @@
     <button class="mobile-nav-button active" data-view="library" type="button"><svg class="icon"><use href="#i-book"></use></svg><span>词库</span></button>
     <button class="mobile-nav-button" data-view="practice" type="button"><svg class="icon"><use href="#i-pen"></use></svg><span>练习</span></button>
     <button class="mobile-nav-button" data-view="saved" type="button"><svg class="icon"><use href="#i-star"></use></svg><span>收藏</span></button>
+    <button class="mobile-nav-button" data-view="notes" type="button"><svg class="icon"><use href="#i-note"></use></svg><span>笔记</span></button>
     <button class="mobile-nav-button" data-view="ai" type="button"><svg class="icon"><use href="#i-sparkles"></use></svg><span>智能</span></button>
   </nav>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -574,6 +636,9 @@
     <symbol id="i-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m12 3-1.1 3.2a5 5 0 0 1-3.1 3.1L4.5 10.5l3.3 1.1a5 5 0 0 1 3.1 3.1L12 18l1.1-3.3a5 5 0 0 1 3.1-3.1l3.3-1.1-3.3-1.2a5 5 0 0 1-3.1-3.1Z"/><path d="m19 16-.5 1.4a2.4 2.4 0 0 1-1.4 1.4l-1.4.5 1.4.5a2.4 2.4 0 0 1 1.4 1.4L19 22l.5-1.4a2.4 2.4 0 0 1 1.4-1.4l1.4-.5-1.4-.5a2.4 2.4 0 0 1-1.4-1.4Z"/></symbol>
     <symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="8" cy="15" r="4"/><path d="m11 12 8-8M15 8l3 3M17 6l2 2"/></symbol>
     <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v5M14 11v5"/></symbol>
   </svg>
 
   <script>
@@ -596,12 +661,22 @@
       practiceFilter: 'all',
       user: null,
       adminInvites: [],
+      adminAnalytics: null,
+      adminSection: 'analytics',
       generatedCodes: [],
+      notes: [],
+      notesLoaded: false,
+      notesLoading: false,
+      editingNoteId: null,
+      lastAiNote: null,
       dictionaryReady: false,
       guestAiUsed: false,
       authMode: 'login',
       pendingView: null,
-      syncTimer: null
+      syncTimer: null,
+      activitySeconds: 0,
+      lastInteractionAt: Date.now(),
+      activitySending: false
     };
 
     const els = {
@@ -677,8 +752,8 @@
         const mobile = area.classList.contains('mobile-account');
         if (state.user) {
           area.innerHTML = mobile
-            ? `${state.user.isAdmin ? '<button class="account-button" data-open-admin type="button" aria-label="邀请码管理">管理</button>' : ''}<button class="account-button" data-logout type="button">退出</button>`
-            : `${state.user.isAdmin ? '<button class="account-button" data-open-admin type="button">邀请码管理</button>' : ''}<span class="account-user" title="${escapeHtml(state.user.username)}">${escapeHtml(state.user.username)}${state.user.isAdmin ? ' · 管理员' : ''}</span><button class="account-button" data-logout type="button">退出</button>`;
+            ? `${state.user.isAdmin ? '<button class="account-button" data-open-admin type="button" aria-label="管理中心">管理</button>' : ''}<button class="account-button" data-logout type="button">退出</button>`
+            : `${state.user.isAdmin ? '<button class="account-button" data-open-admin type="button">管理中心</button>' : ''}<span class="account-user" title="${escapeHtml(state.user.username)}">${escapeHtml(state.user.username)}${state.user.isAdmin ? ' · 管理员' : ''}</span><button class="account-button" data-logout type="button">退出</button>`;
         } else {
           area.innerHTML = mobile
             ? '<button class="account-button" data-open-auth="login" type="button" aria-label="登录账号">登录</button>'
@@ -700,8 +775,10 @@
       document.querySelectorAll('[data-auth-mode]').forEach(button => button.classList.toggle('active', button.dataset.authMode === mode));
       document.getElementById('authTitle').textContent = mode === 'register' ? '创建账号' : '账号登录';
       document.getElementById('authDescription').textContent = state.pendingView === 'ai'
-        ? '注册或登录后即可使用智能辨析。'
-        : '登录后，学习进度会安全保存到你的账号。';
+        ? '注册或登录后即可继续使用智能辨析。'
+        : ['notes', 'ai-note'].includes(state.pendingView)
+          ? '登录后，笔记会安全保存到你的账号。'
+          : '登录后，学习进度会安全保存到你的账号。';
       document.getElementById('authSubmit').textContent = mode === 'register' ? '注册并保存进度' : '登录并同步';
       document.getElementById('authPassword').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
       const inviteField = document.getElementById('inviteCodeField');
@@ -750,7 +827,8 @@
         renderAccountAreas();
         const pendingView = state.pendingView;
         closeAuth();
-        if (pendingView) setView(pendingView);
+        if (pendingView === 'ai-note') await saveAiResultToNotes();
+        else if (pendingView) setView(pendingView);
         showToast(state.authMode === 'register' ? '账号已创建，进度已保存' : '登录成功，进度已同步');
       } catch (error) {
         els.authMessage.textContent = error.message;
@@ -772,10 +850,46 @@
       renderAccountAreas();
     }
 
+    function noteInteraction() {
+      state.lastInteractionAt = Date.now();
+    }
+
+    async function flushActivity(options = {}) {
+      if (!state.user || state.activitySending || state.activitySeconds < 1) return;
+      const seconds = Math.min(120, Math.floor(state.activitySeconds));
+      state.activitySeconds -= seconds;
+      state.activitySending = true;
+      try {
+        const response = await fetch('/api/activity', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({seconds}),
+          keepalive: Boolean(options.keepalive)
+        });
+        if (!response.ok) {
+          if (response.status === 401) { state.user = null; renderAccountAreas(); }
+          else state.activitySeconds += seconds;
+        }
+      } catch {
+        state.activitySeconds += seconds;
+      } finally {
+        state.activitySending = false;
+      }
+    }
+
+    function collectActivity() {
+      if (!state.user || document.visibilityState !== 'visible') return;
+      if (Date.now() - state.lastInteractionAt > 2 * 60 * 1000) return;
+      state.activitySeconds += 15;
+      if (state.activitySeconds >= 45) flushActivity();
+    }
+
     async function logout() {
+      await flushActivity({keepalive:true});
       try { await fetch('/api/auth/logout', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}); } catch {}
       state.user = null;
-      state.adminInvites = []; state.generatedCodes = [];
+      state.adminInvites = []; state.adminAnalytics = null; state.generatedCodes = []; state.activitySeconds = 0;
+      state.notes = []; state.notesLoaded = false; state.notesLoading = false; state.editingNoteId = null;
       state.mastered = new Set(); state.saved = new Set(); state.wrong = new Set();
       localStorage.removeItem(STORAGE.mastered); localStorage.removeItem(STORAGE.saved); localStorage.removeItem(STORAGE.wrong);
       updateStats(); renderWordList(); renderAccountAreas(); setView('library');
@@ -817,6 +931,75 @@
         const status = document.getElementById('adminStatus');
         if (status) status.textContent = error.message;
       }
+    }
+
+    async function loadAdminAnalytics() {
+      if (!state.user?.isAdmin) return;
+      try {
+        const response = await fetch('/api/admin/analytics', {cache:'no-store'});
+        const payload = await response.json();
+        if (response.status === 401 || response.status === 403) {
+          state.user = null;
+          renderAccountAreas();
+          setView('library');
+        }
+        if (!response.ok) throw new Error(payload.error || '统计数据载入失败');
+        state.adminAnalytics = payload;
+        if (state.view === 'admin' && state.adminSection === 'analytics') renderAdmin();
+      } catch (error) {
+        const status = document.getElementById('adminAnalyticsStatus');
+        if (status) status.textContent = error.message;
+      }
+    }
+
+    function formatDuration(seconds) {
+      const total = Math.max(0, Number(seconds) || 0);
+      if (total < 60) return `${Math.floor(total)} 秒`;
+      if (total < 3600) return `${Math.floor(total / 60)} 分钟`;
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      return minutes ? `${hours} 小时 ${minutes} 分` : `${hours} 小时`;
+    }
+
+    function formatDateTime(timestamp) {
+      if (!timestamp) return '暂无活动';
+      return new Intl.DateTimeFormat('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false}).format(new Date(timestamp * 1000));
+    }
+
+    function renderAdminAnalytics() {
+      const analytics = state.adminAnalytics;
+      if (!analytics) return '<div class="analytics-loading" id="adminAnalyticsStatus">正在汇总用户数据...</div>';
+      const summary = analytics.summary || {};
+      const trend = analytics.trend || [];
+      const users = analytics.users || [];
+      const maxDuration = Math.max(1, ...trend.map(day => Number(day.activeSeconds || 0)));
+      const chart = trend.map(day => {
+        const height = day.activeSeconds ? Math.max(5, Math.round(Number(day.activeSeconds) * 100 / maxDuration)) : 2;
+        const label = String(day.day || '').slice(5).replace('-', '/');
+        return `<div class="analytics-day" title="${escapeHtml(day.day)} · ${day.activeUsers} 人 · ${formatDuration(day.activeSeconds)} · ${day.attempts} 题">
+          <div class="analytics-bar-wrap"><div class="analytics-bar" style="height:${height}%"></div></div><span class="analytics-day-label">${escapeHtml(label)}</span>
+        </div>`;
+      }).join('');
+      const rows = users.map(user => `<tr>
+        <td><span class="user-name">${escapeHtml(user.username)}</span>${user.isAdmin ? '<span class="admin-badge">管理员</span>' : ''}</td>
+        <td>${formatDate(user.createdAt)}</td><td>${formatDateTime(user.lastActiveAt)}</td>
+        <td>${formatDuration(user.durationSeconds)}</td><td>${formatDuration(user.duration7dSeconds)}</td>
+        <td>${user.attempts}</td><td>${user.accuracy == null ? '暂无' : `${user.accuracy}%`}</td>
+        <td>${user.masteredCount}</td><td>${user.savedCount}</td><td>${user.wrongCount}</td>
+      </tr>`).join('');
+      return `<section aria-label="用户数据概览">
+        <div class="analytics-metrics">
+          <div class="analytics-metric"><div class="analytics-metric-label">注册用户</div><div class="analytics-metric-value">${summary.totalUsers || 0}</div><div class="analytics-metric-note">近 7 日新增 ${summary.newUsers7d || 0} 人</div></div>
+          <div class="analytics-metric"><div class="analytics-metric-label">活跃用户</div><div class="analytics-metric-value">${summary.active7d || 0}</div><div class="analytics-metric-note">今日 ${summary.activeToday || 0} 人</div></div>
+          <div class="analytics-metric"><div class="analytics-metric-label">累计学习时长</div><div class="analytics-metric-value">${formatDuration(summary.durationSeconds)}</div><div class="analytics-metric-note">近 7 日 ${formatDuration(summary.duration7dSeconds)}</div></div>
+          <div class="analytics-metric"><div class="analytics-metric-label">累计答题</div><div class="analytics-metric-value">${summary.totalAttempts || 0}</div><div class="analytics-metric-note">近 7 日 ${summary.attempts7d || 0} 题</div></div>
+          <div class="analytics-metric"><div class="analytics-metric-label">总体正确率</div><div class="analytics-metric-value">${summary.accuracy == null ? '暂无' : `${summary.accuracy}%`}</div><div class="analytics-metric-note">近 7 日 ${summary.accuracy7d == null ? '暂无' : `${summary.accuracy7d}%`}</div></div>
+        </div>
+        <section class="analytics-section"><div class="analytics-section-head"><div><h2>近 14 日学习时长</h2><p>仅统计登录后、页面可见且近期有操作的时间；从本功能上线后开始累计。</p></div><button class="text-button" data-refresh-analytics type="button">刷新数据</button></div><div class="analytics-chart">${chart}</div></section>
+        <section class="analytics-section"><div class="analytics-section-head"><div><h2>用户明细</h2><p>按最近活动排序，最多显示 500 个账号。</p></div></div>
+          <div class="user-table-wrap"><table class="user-table"><thead><tr><th>账号</th><th>注册日期</th><th>最近活动</th><th>累计时长</th><th>近 7 日时长</th><th>答题</th><th>正确率</th><th>已掌握</th><th>收藏</th><th>错题</th></tr></thead><tbody>${rows || '<tr><td colspan="10">暂无用户数据</td></tr>'}</tbody></table></div>
+        </section>
+      </section>`;
     }
 
     function normalizePhraseParts(value) {
@@ -1056,6 +1239,114 @@
       els.content.scrollTop = 0;
     }
 
+    function formatNoteDate(timestamp) {
+      if (!timestamp) return '';
+      return new Intl.DateTimeFormat('zh-CN', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}).format(new Date(timestamp * 1000));
+    }
+
+    function renderNotes() {
+      if (!state.user) return;
+      const editing = state.notes.find(note => note.id === state.editingNoteId);
+      const cards = state.notes.map(note => `<article class="note-card">
+        <div class="note-card-head"><div><h2 class="note-card-title">${escapeHtml(note.title)}</h2><div class="note-meta">${note.sourceType === 'ai' ? '智能辨析' : '手动笔记'} · 更新于 ${escapeHtml(formatNoteDate(note.updatedAt))}</div></div>
+          <div class="note-actions"><button class="note-icon-button" data-edit-note="${note.id}" type="button" aria-label="编辑笔记" title="编辑"><svg class="icon"><use href="#i-edit"></use></svg></button><button class="note-icon-button danger" data-delete-note="${note.id}" type="button" aria-label="删除笔记" title="删除"><svg class="icon"><use href="#i-trash"></use></svg></button></div></div>
+        <p class="note-content">${escapeHtml(note.content)}</p>
+      </article>`).join('');
+      els.crumb.textContent = '我的笔记';
+      els.mobileTitle.textContent = '我的笔记';
+      els.mobileStar.classList.add('hidden');
+      els.content.innerHTML = `<section class="notes-view">
+        <header class="view-header"><h1>我的笔记</h1><p>记录自己的理解，也可收藏智能辨析结果。</p></header>
+        <section class="notes-compose"><h2>${editing ? '编辑笔记' : '新建笔记'}</h2><form id="noteForm">
+          <div class="ai-field"><label for="noteTitle">标题</label><input class="ai-input" id="noteTitle" name="title" maxlength="120" value="${escapeHtml(editing?.title || '')}" placeholder="为笔记添加一个标题" required></div>
+          <div class="ai-field"><label for="noteContent">内容</label><textarea class="ai-textarea" id="noteContent" name="content" maxlength="20000" placeholder="输入需要保存的学习内容" required>${escapeHtml(editing?.content || '')}</textarea></div>
+          <div class="note-form-actions">${editing ? '<button class="text-button" data-cancel-note-edit type="button">取消</button>' : ''}<button class="text-button primary" id="noteSubmit" type="submit">${editing ? '保存修改' : '添加笔记'}</button></div>
+        </form></section>
+        <div id="notesList">${state.notesLoading ? '<div class="notes-loading">正在载入笔记……</div>' : cards ? `<div class="notes-list">${cards}</div>` : '<div class="empty-state"><svg class="icon"><use href="#i-note"></use></svg>还没有笔记<br>可在上方新建，或保存智能辨析结果</div>'}</div>
+      </section>`;
+      if (editing) setTimeout(() => document.getElementById('noteTitle')?.focus(), 0);
+    }
+
+    async function loadNotes(force = false) {
+      if (!state.user || state.notesLoading || (state.notesLoaded && !force)) return;
+      state.notesLoading = true;
+      if (state.view === 'notes') renderNotes();
+      try {
+        const response = await fetch('/api/notes', {cache:'no-store'});
+        const payload = await response.json();
+        if (response.status === 401) {
+          state.user = null; state.notes = []; state.notesLoaded = false; renderAccountAreas();
+          openAuth('login', 'notes');
+        }
+        if (!response.ok) throw new Error(payload.error || '笔记载入失败');
+        state.notes = payload.notes || [];
+        state.notesLoaded = true;
+      } catch (error) {
+        showToast(error.message);
+      } finally {
+        state.notesLoading = false;
+        if (state.view === 'notes' && state.user) renderNotes();
+      }
+    }
+
+    async function submitNoteForm(form) {
+      const submit = document.getElementById('noteSubmit');
+      if (submit) submit.disabled = true;
+      const editingId = state.editingNoteId;
+      try {
+        const response = await fetch(editingId ? '/api/notes/update' : '/api/notes', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({id:editingId, title:form.elements.title.value.trim(), content:form.elements.content.value.trim(), sourceType:'manual'})
+        });
+        const payload = await response.json();
+        if (response.status === 401) { state.user = null; renderAccountAreas(); openAuth('login', 'notes'); }
+        if (!response.ok) throw new Error(payload.error || '笔记保存失败');
+        const existingIndex = state.notes.findIndex(note => note.id === payload.note.id);
+        if (existingIndex >= 0) state.notes.splice(existingIndex, 1);
+        state.notes.unshift(payload.note);
+        state.notesLoaded = true;
+        state.editingNoteId = null;
+        renderNotes();
+        showToast(editingId ? '笔记已更新' : '笔记已保存');
+      } catch (error) {
+        showToast(error.message);
+        if (submit) submit.disabled = false;
+      }
+    }
+
+    async function deleteNote(id) {
+      const note = state.notes.find(item => item.id === Number(id));
+      if (!note || !window.confirm(`确定删除笔记“${note.title}”吗？删除后无法恢复。`)) return;
+      try {
+        const response = await fetch('/api/notes/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:note.id})});
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || '笔记删除失败');
+        state.notes = state.notes.filter(item => item.id !== note.id);
+        if (state.editingNoteId === note.id) state.editingNoteId = null;
+        renderNotes();
+        showToast('笔记已删除');
+      } catch (error) { showToast(error.message); }
+    }
+
+    async function saveAiResultToNotes() {
+      if (!state.lastAiNote) return;
+      if (!state.user) { openAuth('login', 'ai-note'); showToast('登录后可保存到账号笔记'); return; }
+      const button = document.querySelector('[data-save-ai-note]');
+      if (button) button.disabled = true;
+      try {
+        const response = await fetch('/api/notes', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...state.lastAiNote, sourceType:'ai'})});
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || '辨析结果保存失败');
+        if (state.notesLoaded) state.notes.unshift(payload.note);
+        else { state.notes = [payload.note]; state.notesLoaded = false; }
+        if (button) { button.querySelector('span').textContent = '已保存到笔记'; button.disabled = true; }
+        showToast('辨析结果已保存到我的笔记');
+      } catch (error) {
+        if (button) button.disabled = false;
+        showToast(error.message);
+      }
+    }
+
     function renderAdmin() {
       if (!state.user?.isAdmin) {
         setView('library');
@@ -1074,11 +1365,7 @@
         <span class="invite-meta">${invite.status === 'used' ? `用户：${escapeHtml(invite.usedBy || '账号已删除')}` : `到期：${formatDate(invite.expiresAt)}`}</span>
         ${invite.status === 'active' ? `<button class="invite-action" data-revoke-invite="${invite.id}" type="button">撤销</button>` : '<span></span>'}
       </div>`).join('');
-      els.crumb.textContent = '邀请码管理';
-      els.mobileTitle.textContent = '邀请码管理';
-      els.mobileStar.classList.add('hidden');
-      els.content.innerHTML = `<section class="admin-view">
-        <header class="view-header"><h1>邀请码管理</h1><p>批量生成固定格式的一次性邀请码。默认自生成之日起 60 天内有效，注册成功后立即核销。</p></header>
+      const inviteContent = `<section>
         <section class="admin-controls"><form class="admin-form" id="adminInviteForm">
           <div class="admin-field"><label for="inviteCount">生成数量</label><input class="admin-input" id="inviteCount" name="count" type="number" min="1" max="100" value="10" required></div>
           <div class="admin-field"><label for="inviteValidDays">有效天数</label><input class="admin-input" id="inviteValidDays" name="validDays" type="number" min="1" max="3650" value="60" required></div>
@@ -1089,6 +1376,17 @@
         <section><div class="invite-list-head"><div><h2>邀请码记录</h2><p class="invite-summary">有效 ${activeCount} 个 · 已核销 ${usedCount} 个 · 最近 ${state.adminInvites.length} 条</p></div><button class="text-button" data-refresh-invites type="button">刷新</button></div>
           <div class="invite-list">${rows || '<div class="empty-state">尚未生成邀请码</div>'}</div>
         </section>
+      </section>`;
+      els.crumb.textContent = '管理中心';
+      els.mobileTitle.textContent = '管理中心';
+      els.mobileStar.classList.add('hidden');
+      els.content.innerHTML = `<section class="admin-view">
+        <header class="view-header"><h1>管理中心</h1><p>查看用户学习数据、活跃趋势和邀请码使用情况。</p></header>
+        <nav class="admin-section-tabs" aria-label="管理中心功能">
+          <button class="admin-section-tab ${state.adminSection === 'analytics' ? 'active' : ''}" data-admin-section="analytics" type="button">数据概览</button>
+          <button class="admin-section-tab ${state.adminSection === 'invites' ? 'active' : ''}" data-admin-section="invites" type="button">邀请码管理</button>
+        </nav>
+        ${state.adminSection === 'analytics' ? renderAdminAnalytics() : inviteContent}
       </section>`;
       els.content.scrollTop = 0;
     }
@@ -1141,7 +1439,12 @@
 
     function setView(view, options = {}) {
       if (view === 'admin' && !state.user?.isAdmin) {
-        showToast('仅管理员可以管理邀请码');
+        showToast('仅管理员可以访问管理中心');
+        return;
+      }
+      if (view === 'notes' && !state.user) {
+        openAuth('login', 'notes');
+        showToast('登录后可使用我的笔记');
         return;
       }
       state.view = view;
@@ -1160,9 +1463,12 @@
         renderAi();
       } else if (view === 'saved') {
         renderSaved();
+      } else if (view === 'notes') {
+        renderNotes();
+        loadNotes();
       } else if (view === 'admin') {
         renderAdmin();
-        loadAdminInvites();
+        if (state.adminSection === 'analytics') loadAdminAnalytics(); else loadAdminInvites();
       }
       updateMobileTopbarAction();
       if (!options.keepScroll) els.content.scrollTop = 0;
@@ -1326,7 +1632,8 @@
         }
         if (!response.ok) throw new Error(payload.error || '智能辨析暂时不可用');
         if (!state.user && payload.guestTrialUsed) state.guestAiUsed = true;
-        result.innerHTML = '<div class="ai-result"><h2>辨析结果</h2><p class="ai-result-copy"></p></div>';
+        state.lastAiNote = {title:`${wordParts.join(' / ')}辨析`, content:payload.analysis};
+        result.innerHTML = '<div class="ai-result"><div class="ai-result-head"><h2>辨析结果</h2><button class="ai-note-button" data-save-ai-note type="button"><svg class="icon"><use href="#i-note"></use></svg><span>保存到我的笔记</span></button></div><p class="ai-result-copy"></p></div>';
         result.querySelector('.ai-result-copy').textContent = payload.analysis;
       } catch (error) {
         result.innerHTML = '<div class="ai-result ai-error"><h2>请求未完成</h2><p class="ai-result-copy"></p></div>';
@@ -1375,6 +1682,12 @@
       }
       const savedItem = event.target.closest('[data-saved-id]');
       if (savedItem) { selectItem(savedItem.dataset.savedId); return; }
+      if (event.target.closest('[data-save-ai-note]')) { saveAiResultToNotes(); return; }
+      const editNote = event.target.closest('[data-edit-note]');
+      if (editNote) { state.editingNoteId = Number(editNote.dataset.editNote); renderNotes(); els.content.scrollTo({top:0, behavior:'smooth'}); return; }
+      if (event.target.closest('[data-cancel-note-edit]')) { state.editingNoteId = null; renderNotes(); return; }
+      const deleteNoteButton = event.target.closest('[data-delete-note]');
+      if (deleteNoteButton) { deleteNote(deleteNoteButton.dataset.deleteNote); return; }
       const practicePage = event.target.closest('[data-practice-page]');
       if (practicePage && !practicePage.disabled) {
         state.practicePage += practicePage.dataset.practicePage === 'next' ? 1 : -1;
@@ -1384,6 +1697,14 @@
       if (copyCode) { copyText(copyCode.dataset.copyCode); return; }
       if (event.target.closest('[data-copy-all-codes]')) { copyText(state.generatedCodes.join('\n')); return; }
       if (event.target.closest('[data-refresh-invites]')) { loadAdminInvites(); return; }
+      if (event.target.closest('[data-refresh-analytics]')) { loadAdminAnalytics(); return; }
+      const adminSection = event.target.closest('[data-admin-section]');
+      if (adminSection) {
+        state.adminSection = adminSection.dataset.adminSection;
+        renderAdmin();
+        if (state.adminSection === 'analytics') loadAdminAnalytics(); else loadAdminInvites();
+        return;
+      }
       const revokeInvite = event.target.closest('[data-revoke-invite]');
       if (revokeInvite) { revokeAdminInvite(revokeInvite.dataset.revokeInvite); return; }
     });
@@ -1401,6 +1722,11 @@
       if (event.target.matches('#adminInviteForm')) {
         event.preventDefault();
         submitAdminInviteForm(event.target);
+        return;
+      }
+      if (event.target.matches('#noteForm')) {
+        event.preventDefault();
+        submitNoteForm(event.target);
       }
     });
 
@@ -1417,6 +1743,12 @@
     els.masterButton.addEventListener('click', toggleMastered);
     document.getElementById('mobileBack').addEventListener('click', () => setView('library'));
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && els.authModal.classList.contains('open')) closeAuth(); });
+    ['pointerdown', 'keydown', 'scroll', 'touchstart'].forEach(type => document.addEventListener(type, noteInteraction, {passive:true, capture:true}));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flushActivity({keepalive:true}); else noteInteraction();
+    });
+    window.addEventListener('pagehide', () => flushActivity({keepalive:true}));
+    setInterval(collectActivity, 15000);
 
     window.addEventListener('resize', () => {
       if (!isMobile()) {
