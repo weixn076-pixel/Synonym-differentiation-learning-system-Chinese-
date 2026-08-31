@@ -8,6 +8,11 @@ const USERNAME_PATTERN = /^[\w\u4e00-\u9fff]{3,24}$/u;
 const UPSTREAM_URL = "https://chat.ecnu.edu.cn/open/api/v1/chat/completions";
 const MODEL = "ecnu-plus";
 const GUEST_ANALYSIS_SECONDS = 365 * 24 * 60 * 60;
+const SHANGHAI_OFFSET_SECONDS = 8 * 60 * 60;
+const DAY_SECONDS = 24 * 60 * 60;
+const MAX_NOTES_PER_USER = 500;
+const MAX_NOTE_TITLE_LENGTH = 120;
+const MAX_NOTE_CONTENT_LENGTH = 20000;
 
 let pool;
 let schemaReady;
@@ -67,6 +72,27 @@ async function initializeSchema() {
         created_at BIGINT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS quiz_attempts_user_time ON quiz_attempts(user_id, created_at DESC);
+      CREATE TABLE IF NOT EXISTS user_activity_daily (
+        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        activity_day BIGINT NOT NULL,
+        active_seconds INTEGER NOT NULL DEFAULT 0,
+        heartbeat_count INTEGER NOT NULL DEFAULT 0,
+        last_active_at BIGINT NOT NULL,
+        PRIMARY KEY (user_id, activity_day)
+      );
+      CREATE INDEX IF NOT EXISTS user_activity_last_active
+        ON user_activity_daily(last_active_at DESC);
+      CREATE TABLE IF NOT EXISTS user_notes (
+        id BIGSERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        source_type TEXT NOT NULL DEFAULT 'manual' CHECK (source_type IN ('manual', 'ai')),
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS user_notes_user_updated
+        ON user_notes(user_id, updated_at DESC, id DESC);
       CREATE TABLE IF NOT EXISTS registration_invites (
         id BIGSERIAL PRIMARY KEY,
         code_hash TEXT NOT NULL UNIQUE,
@@ -279,7 +305,7 @@ async function requireUser(req, res, admin = false) {
     return null;
   }
   if (admin && !user.isAdmin) {
-    sendJson(res, 403, { error: "仅管理员可以管理邀请码" });
+    sendJson(res, 403, { error: "仅管理员可以访问管理中心" });
     return null;
   }
   return user;
@@ -454,6 +480,214 @@ async function handleAttempt(req, res) {
   return sendJson(res, 201, { ok: true });
 }
 
+function cleanNotePayload(body, allowSource = false) {
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  const content = typeof body.content === "string" ? body.content.trim() : "";
+  const sourceType = allowSource && body.sourceType === "ai" ? "ai" : "manual";
+  if (!title || title.length > MAX_NOTE_TITLE_LENGTH || !content || content.length > MAX_NOTE_CONTENT_LENGTH) {
+    throw new Error("invalid note");
+  }
+  return { title, content, sourceType };
+}
+
+function serializeNote(row) {
+  return {
+    id: Number(row.id),
+    title: row.title,
+    content: row.content,
+    sourceType: row.source_type,
+    createdAt: Number(row.created_at),
+    updatedAt: Number(row.updated_at)
+  };
+}
+
+async function handleNotesList(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const result = await databasePool().query(
+    "SELECT id,title,content,source_type,created_at,updated_at FROM user_notes WHERE user_id=$1 ORDER BY updated_at DESC,id DESC LIMIT $2",
+    [user.id, MAX_NOTES_PER_USER]
+  );
+  return sendJson(res, 200, { notes: result.rows.map(serializeNote) });
+}
+
+async function handleNoteCreate(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  let note;
+  try { note = cleanNotePayload(readJson(req), true); }
+  catch { return sendJson(res, 400, { error: "请输入标题和笔记内容，标题最多 120 字" }); }
+  const now = Math.floor(Date.now() / 1000);
+  const result = await databasePool().query(
+    `INSERT INTO user_notes(user_id,title,content,source_type,created_at,updated_at)
+     SELECT $1,$2,$3,$4,$5,$5
+     WHERE (SELECT COUNT(*) FROM user_notes WHERE user_id=$1) < $6
+     RETURNING id,title,content,source_type,created_at,updated_at`,
+    [user.id, note.title, note.content, note.sourceType, now, MAX_NOTES_PER_USER]
+  );
+  if (!result.rowCount) return sendJson(res, 409, { error: `每个账号最多保存 ${MAX_NOTES_PER_USER} 条笔记` });
+  return sendJson(res, 201, { note: serializeNote(result.rows[0]) });
+}
+
+async function handleNoteUpdate(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const body = readJson(req);
+  const id = body.id;
+  let note;
+  try {
+    if (!Number.isInteger(id) || id < 1) throw new Error("invalid id");
+    note = cleanNotePayload(body);
+  } catch { return sendJson(res, 400, { error: "笔记内容或记录编号无效" }); }
+  const result = await databasePool().query(
+    `UPDATE user_notes SET title=$1,content=$2,updated_at=$3
+     WHERE id=$4 AND user_id=$5
+     RETURNING id,title,content,source_type,created_at,updated_at`,
+    [note.title, note.content, Math.floor(Date.now() / 1000), id, user.id]
+  );
+  if (!result.rowCount) return sendJson(res, 404, { error: "笔记不存在" });
+  return sendJson(res, 200, { note: serializeNote(result.rows[0]) });
+}
+
+async function handleNoteDelete(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const id = readJson(req).id;
+  if (!Number.isInteger(id) || id < 1) return sendJson(res, 400, { error: "笔记记录无效" });
+  const result = await databasePool().query("DELETE FROM user_notes WHERE id=$1 AND user_id=$2", [id, user.id]);
+  if (!result.rowCount) return sendJson(res, 404, { error: "笔记不存在" });
+  return sendJson(res, 200, { ok: true });
+}
+
+function shanghaiDayStart(timestamp) {
+  return Math.floor((timestamp + SHANGHAI_OFFSET_SECONDS) / DAY_SECONDS) * DAY_SECONDS - SHANGHAI_OFFSET_SECONDS;
+}
+
+function shanghaiDayLabel(dayStart) {
+  return new Date((dayStart + SHANGHAI_OFFSET_SECONDS) * 1000).toISOString().slice(0, 10);
+}
+
+async function handleActivity(req, res) {
+  const user = await requireUser(req, res); if (!user) return;
+  const seconds = readJson(req).seconds;
+  if (!Number.isInteger(seconds) || seconds < 1 || seconds > 120) {
+    return sendJson(res, 400, { error: "活跃时长格式不正确" });
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const activityDay = shanghaiDayStart(now);
+  await databasePool().query(
+    `INSERT INTO user_activity_daily(user_id,activity_day,active_seconds,heartbeat_count,last_active_at)
+     VALUES($1,$2,LEAST($3,60),1,$4)
+     ON CONFLICT(user_id,activity_day) DO UPDATE SET
+       active_seconds=user_activity_daily.active_seconds + LEAST($3,GREATEST(0,$4-user_activity_daily.last_active_at),90),
+       heartbeat_count=user_activity_daily.heartbeat_count + 1,
+       last_active_at=GREATEST(user_activity_daily.last_active_at,$4)`,
+    [user.id, activityDay, seconds, now]
+  );
+  return sendJson(res, 200, { ok: true, recordedAt: now });
+}
+
+async function handleAdminAnalytics(req, res) {
+  const administrator = await requireUser(req, res, true); if (!administrator) return;
+  const now = Math.floor(Date.now() / 1000);
+  const todayStart = shanghaiDayStart(now);
+  const sevenDayStart = todayStart - 6 * DAY_SECONDS;
+  const trendStart = todayStart - 13 * DAY_SECONDS;
+
+  const [userResult, recentAttemptResult, trendResult] = await Promise.all([
+    databasePool().query(
+      `SELECT users.id,users.username,users.created_at,users.is_admin,
+              COALESCE(jsonb_array_length(user_progress.mastered_json),0) AS mastered_count,
+              COALESCE(jsonb_array_length(user_progress.saved_json),0) AS saved_count,
+              COALESCE(jsonb_array_length(user_progress.wrong_json),0) AS wrong_count,
+              COALESCE(user_progress.total_attempts,0) AS total_attempts,
+              COALESCE(user_progress.correct_attempts,0) AS correct_attempts,
+              user_progress.updated_at,
+              activity.total_seconds,activity.seven_day_seconds,activity.last_active_at,
+              attempts.last_attempt_at
+       FROM users
+       LEFT JOIN user_progress ON user_progress.user_id=users.id
+       LEFT JOIN LATERAL (
+         SELECT COALESCE(SUM(active_seconds),0) AS total_seconds,
+                COALESCE(SUM(active_seconds) FILTER (WHERE activity_day >= $1),0) AS seven_day_seconds,
+                MAX(last_active_at) AS last_active_at
+         FROM user_activity_daily WHERE user_id=users.id
+       ) activity ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT MAX(created_at) AS last_attempt_at FROM quiz_attempts WHERE user_id=users.id
+       ) attempts ON TRUE
+       ORDER BY GREATEST(users.created_at,COALESCE(user_progress.updated_at,0),COALESCE(activity.last_active_at,0),COALESCE(attempts.last_attempt_at,0)) DESC
+       LIMIT 500`,
+      [sevenDayStart]
+    ),
+    databasePool().query(
+      `SELECT COUNT(*) AS attempts,COUNT(*) FILTER (WHERE quiz_attempts.correct) AS correct
+       FROM quiz_attempts JOIN users ON users.id=quiz_attempts.user_id
+       WHERE users.is_admin=FALSE AND quiz_attempts.created_at >= $1`,
+      [sevenDayStart]
+    ),
+    databasePool().query(
+      `WITH combined AS (
+         SELECT activity.user_id,activity.activity_day AS day,activity.active_seconds::bigint AS active_seconds,
+                0::bigint AS attempts,0::bigint AS correct
+         FROM user_activity_daily activity JOIN users ON users.id=activity.user_id
+         WHERE users.is_admin=FALSE AND activity.activity_day >= $1
+         UNION ALL
+         SELECT quiz_attempts.user_id,(((quiz_attempts.created_at+$2)/86400)*86400-$2)::bigint AS day,
+                0::bigint AS active_seconds,COUNT(*)::bigint AS attempts,
+                COUNT(*) FILTER (WHERE quiz_attempts.correct)::bigint AS correct
+         FROM quiz_attempts JOIN users ON users.id=quiz_attempts.user_id
+         WHERE users.is_admin=FALSE AND quiz_attempts.created_at >= $1
+         GROUP BY quiz_attempts.user_id,day
+       )
+       SELECT day,COUNT(DISTINCT user_id) AS active_users,SUM(active_seconds) AS active_seconds,
+              SUM(attempts) AS attempts,SUM(correct) AS correct
+       FROM combined GROUP BY day ORDER BY day`,
+      [trendStart, SHANGHAI_OFFSET_SECONDS]
+    )
+  ]);
+
+  const users = userResult.rows.map(row => {
+    const lastActiveAt = Math.max(Number(row.created_at || 0), Number(row.updated_at || 0), Number(row.last_active_at || 0), Number(row.last_attempt_at || 0));
+    const attempts = Number(row.total_attempts || 0);
+    const correctAttempts = Number(row.correct_attempts || 0);
+    return {
+      id: Number(row.id), username: row.username, isAdmin: Boolean(row.is_admin), createdAt: Number(row.created_at), lastActiveAt,
+      durationSeconds: Number(row.total_seconds || 0), duration7dSeconds: Number(row.seven_day_seconds || 0),
+      attempts, correctAttempts, accuracy: attempts ? Math.round(correctAttempts * 1000 / attempts) / 10 : null,
+      masteredCount: Number(row.mastered_count || 0), savedCount: Number(row.saved_count || 0), wrongCount: Number(row.wrong_count || 0)
+    };
+  });
+  const learners = users.filter(user => !user.isAdmin);
+  const recentAttempts = Number(recentAttemptResult.rows[0]?.attempts || 0);
+  const recentCorrect = Number(recentAttemptResult.rows[0]?.correct || 0);
+  const trendByDay = new Map(trendResult.rows.map(row => [Number(row.day), row]));
+  const trend = Array.from({ length: 14 }, (_, index) => {
+    const day = trendStart + index * DAY_SECONDS;
+    const row = trendByDay.get(day) || {};
+    const attempts = Number(row.attempts || 0);
+    const correct = Number(row.correct || 0);
+    return {
+      day: shanghaiDayLabel(day), activeUsers: Number(row.active_users || 0), activeSeconds: Number(row.active_seconds || 0),
+      attempts, correct, accuracy: attempts ? Math.round(correct * 1000 / attempts) / 10 : null
+    };
+  });
+  const totalAttempts = learners.reduce((sum, user) => sum + user.attempts, 0);
+  const totalCorrect = learners.reduce((sum, user) => sum + user.correctAttempts, 0);
+  return sendJson(res, 200, {
+    generatedAt: now,
+    summary: {
+      totalUsers: learners.length,
+      newUsers7d: learners.filter(user => user.createdAt >= sevenDayStart).length,
+      activeToday: learners.filter(user => user.lastActiveAt >= todayStart).length,
+      active7d: learners.filter(user => user.lastActiveAt >= sevenDayStart).length,
+      durationSeconds: learners.reduce((sum, user) => sum + user.durationSeconds, 0),
+      duration7dSeconds: learners.reduce((sum, user) => sum + user.duration7dSeconds, 0),
+      totalAttempts, attempts7d: recentAttempts,
+      accuracy: totalAttempts ? Math.round(totalCorrect * 1000 / totalAttempts) / 10 : null,
+      accuracy7d: recentAttempts ? Math.round(recentCorrect * 1000 / recentAttempts) / 10 : null
+    },
+    trend,
+    users
+  });
+}
+
 async function handleAdminList(req, res) {
   const user = await requireUser(req, res, true); if (!user) return;
   const now = Math.floor(Date.now() / 1000);
@@ -558,7 +792,9 @@ module.exports = async function handler(req, res) {
         const user = await requireUser(req, res); if (user) return sendJson(res, 200, { progress: await progressForUser(user.id) });
         return;
       }
+      if (path === "/api/notes") return handleNotesList(req, res);
       if (path === "/api/admin/invites") return handleAdminList(req, res);
+      if (path === "/api/admin/analytics") return handleAdminAnalytics(req, res);
       return sendJson(res, 404, { error: "接口不存在" });
     }
     if (req.method !== "POST") return sendJson(res, 405, { error: "请求方法不受支持" }, { Allow: "GET, POST" });
@@ -568,6 +804,10 @@ module.exports = async function handler(req, res) {
     if (path === "/api/auth/logout") return handleLogout(req, res);
     if (path === "/api/progress") return handleSaveProgress(req, res);
     if (path === "/api/attempts") return handleAttempt(req, res);
+    if (path === "/api/activity") return handleActivity(req, res);
+    if (path === "/api/notes") return handleNoteCreate(req, res);
+    if (path === "/api/notes/update") return handleNoteUpdate(req, res);
+    if (path === "/api/notes/delete") return handleNoteDelete(req, res);
     if (path === "/api/admin/invites") return handleAdminCreate(req, res);
     if (path === "/api/admin/invites/revoke") return handleAdminRevoke(req, res);
     if (path === "/api/synonym-analysis") return handleAnalysis(req, res);
