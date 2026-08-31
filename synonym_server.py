@@ -46,6 +46,11 @@ USERNAME_PATTERN = re.compile(r"^[\w\u4e00-\u9fff]{3,24}$", re.UNICODE)
 INVITE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 INVITE_CODE_LENGTH = 20
 DEFAULT_INVITE_VALID_DAYS = 60
+SHANGHAI_OFFSET_SECONDS = 8 * 60 * 60
+DAY_SECONDS = 24 * 60 * 60
+MAX_NOTES_PER_USER = 500
+MAX_NOTE_TITLE_LENGTH = 120
+MAX_NOTE_CONTENT_LENGTH = 20_000
 
 
 class InvalidInviteCode(Exception):
@@ -274,6 +279,27 @@ def initialize_database():
             );
             CREATE INDEX IF NOT EXISTS quiz_attempts_user_time
                 ON quiz_attempts(user_id, created_at DESC);
+            CREATE TABLE IF NOT EXISTS user_activity_daily (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                activity_day INTEGER NOT NULL,
+                active_seconds INTEGER NOT NULL DEFAULT 0,
+                heartbeat_count INTEGER NOT NULL DEFAULT 0,
+                last_active_at INTEGER NOT NULL,
+                PRIMARY KEY (user_id, activity_day)
+            );
+            CREATE INDEX IF NOT EXISTS user_activity_last_active
+                ON user_activity_daily(last_active_at DESC);
+            CREATE TABLE IF NOT EXISTS user_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                source_type TEXT NOT NULL DEFAULT 'manual' CHECK (source_type IN ('manual', 'ai')),
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS user_notes_user_updated
+                ON user_notes(user_id, updated_at DESC, id DESC);
             CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires_at);
             CREATE INDEX IF NOT EXISTS registration_invites_state
                 ON registration_invites(used_at, revoked_at, expires_at);
@@ -420,7 +446,7 @@ class SynonymHandler(BaseHTTPRequestHandler):
     def require_admin(self):
         user = self.require_user()
         if user and not user["isAdmin"]:
-            self.send_json(HTTPStatus.FORBIDDEN, {"error": "仅管理员可以管理邀请码"})
+            self.send_json(HTTPStatus.FORBIDDEN, {"error": "仅管理员可以访问管理中心"})
             return None
         return user
 
@@ -447,8 +473,12 @@ class SynonymHandler(BaseHTTPRequestHandler):
             self.get_current_user()
         elif path == "/api/progress":
             self.get_progress()
+        elif path == "/api/notes":
+            self.get_notes()
         elif path == "/api/admin/invites":
             self.get_admin_invites()
+        elif path == "/api/admin/analytics":
+            self.get_admin_analytics()
         else:
             self.serve_static(head_only=False)
 
@@ -490,7 +520,7 @@ class SynonymHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path not in {"/api/auth/register", "/api/auth/login", "/api/auth/logout", "/api/progress", "/api/attempts", "/api/synonym-analysis", "/api/admin/invites", "/api/admin/invites/revoke"}:
+        if path not in {"/api/auth/register", "/api/auth/login", "/api/auth/logout", "/api/progress", "/api/attempts", "/api/activity", "/api/synonym-analysis", "/api/notes", "/api/notes/update", "/api/notes/delete", "/api/admin/invites", "/api/admin/invites/revoke"}:
             self.send_error(HTTPStatus.NOT_FOUND)
             return
         if not self.is_same_origin():
@@ -505,12 +535,132 @@ class SynonymHandler(BaseHTTPRequestHandler):
             self.save_progress()
         elif path == "/api/attempts":
             self.save_attempt()
+        elif path == "/api/activity":
+            self.save_activity()
+        elif path == "/api/notes":
+            self.create_note()
+        elif path == "/api/notes/update":
+            self.update_note()
+        elif path == "/api/notes/delete":
+            self.delete_note()
         elif path == "/api/admin/invites":
             self.create_admin_invites()
         elif path == "/api/admin/invites/revoke":
             self.revoke_admin_invite()
         else:
             self.handle_synonym_analysis()
+
+    def note_payload(self, payload, allow_source=False):
+        title = payload.get("title", "")
+        content = payload.get("content", "")
+        if not isinstance(title, str) or not isinstance(content, str):
+            raise ValueError
+        title = title.strip()
+        content = content.strip()
+        if not title or len(title) > MAX_NOTE_TITLE_LENGTH or not content or len(content) > MAX_NOTE_CONTENT_LENGTH:
+            raise ValueError
+        source_type = "ai" if allow_source and payload.get("sourceType") == "ai" else "manual"
+        return title, content, source_type
+
+    @staticmethod
+    def serialize_note(row):
+        return {
+            "id": row["id"], "title": row["title"], "content": row["content"],
+            "sourceType": row["source_type"], "createdAt": row["created_at"], "updatedAt": row["updated_at"],
+        }
+
+    def get_notes(self):
+        user = self.require_user()
+        if not user:
+            return
+        with database_connection() as connection:
+            rows = connection.execute(
+                "SELECT id, title, content, source_type, created_at, updated_at FROM user_notes "
+                "WHERE user_id = ? ORDER BY updated_at DESC, id DESC LIMIT ?",
+                (user["id"], MAX_NOTES_PER_USER),
+            ).fetchall()
+        self.send_json(HTTPStatus.OK, {"notes": [self.serialize_note(row) for row in rows]})
+
+    def create_note(self):
+        user = self.require_user()
+        if not user:
+            return
+        try:
+            title, content, source_type = self.note_payload(self.read_json_body(), allow_source=True)
+        except TypeError:
+            self.send_json(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, {"error": "请求格式不受支持"})
+            return
+        except (OverflowError, UnicodeDecodeError, json.JSONDecodeError, ValueError, AttributeError):
+            self.send_json(HTTPStatus.BAD_REQUEST, {"error": "请输入标题和笔记内容，标题最多 120 字"})
+            return
+        now = int(time.time())
+        with database_connection() as connection:
+            count = connection.execute("SELECT COUNT(*) FROM user_notes WHERE user_id = ?", (user["id"],)).fetchone()[0]
+            if count >= MAX_NOTES_PER_USER:
+                self.send_json(HTTPStatus.CONFLICT, {"error": "每个账号最多保存 500 条笔记"})
+                return
+            cursor = connection.execute(
+                "INSERT INTO user_notes(user_id, title, content, source_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (user["id"], title, content, source_type, now, now),
+            )
+            row = connection.execute(
+                "SELECT id, title, content, source_type, created_at, updated_at FROM user_notes WHERE id = ?",
+                (cursor.lastrowid,),
+            ).fetchone()
+        self.send_json(HTTPStatus.CREATED, {"note": self.serialize_note(row)})
+
+    def update_note(self):
+        user = self.require_user()
+        if not user:
+            return
+        try:
+            payload = self.read_json_body()
+            note_id = payload.get("id")
+            if isinstance(note_id, bool) or not isinstance(note_id, int) or note_id < 1:
+                raise ValueError
+            title, content, _ = self.note_payload(payload)
+        except TypeError:
+            self.send_json(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, {"error": "请求格式不受支持"})
+            return
+        except (OverflowError, UnicodeDecodeError, json.JSONDecodeError, ValueError, AttributeError):
+            self.send_json(HTTPStatus.BAD_REQUEST, {"error": "笔记内容或记录编号无效"})
+            return
+        now = int(time.time())
+        with database_connection() as connection:
+            result = connection.execute(
+                "UPDATE user_notes SET title = ?, content = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+                (title, content, now, note_id, user["id"]),
+            )
+            row = connection.execute(
+                "SELECT id, title, content, source_type, created_at, updated_at FROM user_notes WHERE id = ? AND user_id = ?",
+                (note_id, user["id"]),
+            ).fetchone()
+        if result.rowcount != 1 or not row:
+            self.send_json(HTTPStatus.NOT_FOUND, {"error": "笔记不存在"})
+            return
+        self.send_json(HTTPStatus.OK, {"note": self.serialize_note(row)})
+
+    def delete_note(self):
+        user = self.require_user()
+        if not user:
+            return
+        try:
+            payload = self.read_json_body(16_000)
+            note_id = payload.get("id")
+            if isinstance(note_id, bool) or not isinstance(note_id, int) or note_id < 1:
+                raise ValueError
+        except TypeError:
+            self.send_json(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, {"error": "请求格式不受支持"})
+            return
+        except (OverflowError, UnicodeDecodeError, json.JSONDecodeError, ValueError, AttributeError):
+            self.send_json(HTTPStatus.BAD_REQUEST, {"error": "笔记记录无效"})
+            return
+        with database_connection() as connection:
+            result = connection.execute("DELETE FROM user_notes WHERE id = ? AND user_id = ?", (note_id, user["id"]))
+        if result.rowcount != 1:
+            self.send_json(HTTPStatus.NOT_FOUND, {"error": "笔记不存在"})
+            return
+        self.send_json(HTTPStatus.OK, {"ok": True})
 
     def handle_synonym_analysis(self):
         user = self.session_user()
@@ -713,6 +863,143 @@ class SynonymHandler(BaseHTTPRequestHandler):
                 "status": status,
             })
         self.send_json(HTTPStatus.OK, {"invites": invitations, "defaultValidDays": DEFAULT_INVITE_VALID_DAYS})
+
+    @staticmethod
+    def shanghai_day_start(timestamp):
+        return ((timestamp + SHANGHAI_OFFSET_SECONDS) // DAY_SECONDS) * DAY_SECONDS - SHANGHAI_OFFSET_SECONDS
+
+    def save_activity(self):
+        user = self.require_user()
+        if not user:
+            return
+        try:
+            payload = self.read_json_body(16_000)
+            seconds = payload.get("seconds")
+            if isinstance(seconds, bool) or not isinstance(seconds, int) or not 1 <= seconds <= 120:
+                raise ValueError
+        except TypeError:
+            self.send_json(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, {"error": "请求格式不受支持"})
+            return
+        except (OverflowError, UnicodeDecodeError, json.JSONDecodeError, ValueError, AttributeError):
+            self.send_json(HTTPStatus.BAD_REQUEST, {"error": "活跃时长格式不正确"})
+            return
+        now = int(time.time())
+        activity_day = self.shanghai_day_start(now)
+        with database_connection() as connection:
+            connection.execute(
+                "INSERT INTO user_activity_daily(user_id, activity_day, active_seconds, heartbeat_count, last_active_at) "
+                "VALUES (?, ?, MIN(?, 60), 1, ?) "
+                "ON CONFLICT(user_id, activity_day) DO UPDATE SET "
+                "active_seconds = user_activity_daily.active_seconds + MIN(?, MAX(0, ? - user_activity_daily.last_active_at), 90), "
+                "heartbeat_count = user_activity_daily.heartbeat_count + 1, "
+                "last_active_at = MAX(user_activity_daily.last_active_at, ?)",
+                (user["id"], activity_day, seconds, now, seconds, now, now),
+            )
+        self.send_json(HTTPStatus.OK, {"ok": True, "recordedAt": now})
+
+    def get_admin_analytics(self):
+        if not self.require_admin():
+            return
+        now = int(time.time())
+        today_start = self.shanghai_day_start(now)
+        seven_day_start = today_start - 6 * DAY_SECONDS
+        trend_start = today_start - 13 * DAY_SECONDS
+        with database_connection() as connection:
+            rows = connection.execute(
+                "SELECT users.id, users.username, users.created_at, users.is_admin, "
+                "user_progress.mastered_json, user_progress.saved_json, user_progress.wrong_json, "
+                "COALESCE(user_progress.total_attempts, 0) AS total_attempts, "
+                "COALESCE(user_progress.correct_attempts, 0) AS correct_attempts, user_progress.updated_at, "
+                "COALESCE((SELECT SUM(active_seconds) FROM user_activity_daily WHERE user_id = users.id), 0) AS total_seconds, "
+                "COALESCE((SELECT SUM(active_seconds) FROM user_activity_daily WHERE user_id = users.id AND activity_day >= ?), 0) AS seven_day_seconds, "
+                "(SELECT MAX(last_active_at) FROM user_activity_daily WHERE user_id = users.id) AS last_active_at, "
+                "(SELECT MAX(created_at) FROM quiz_attempts WHERE user_id = users.id) AS last_attempt_at "
+                "FROM users LEFT JOIN user_progress ON user_progress.user_id = users.id "
+                "ORDER BY MAX(users.created_at, COALESCE(user_progress.updated_at, 0), "
+                "COALESCE((SELECT MAX(last_active_at) FROM user_activity_daily WHERE user_id = users.id), 0), "
+                "COALESCE((SELECT MAX(created_at) FROM quiz_attempts WHERE user_id = users.id), 0)) DESC LIMIT 500",
+                (seven_day_start,),
+            ).fetchall()
+            recent_attempts_row = connection.execute(
+                "SELECT COUNT(*) AS attempts, SUM(CASE WHEN quiz_attempts.correct = 1 THEN 1 ELSE 0 END) AS correct "
+                "FROM quiz_attempts JOIN users ON users.id = quiz_attempts.user_id "
+                "WHERE users.is_admin = 0 AND quiz_attempts.created_at >= ?",
+                (seven_day_start,),
+            ).fetchone()
+            activity_rows = connection.execute(
+                "SELECT activity_day, user_activity_daily.user_id, active_seconds "
+                "FROM user_activity_daily JOIN users ON users.id = user_activity_daily.user_id "
+                "WHERE users.is_admin = 0 AND activity_day >= ?",
+                (trend_start,),
+            ).fetchall()
+            attempt_rows = connection.execute(
+                "SELECT ((quiz_attempts.created_at + ?) / 86400) * 86400 - ? AS activity_day, "
+                "quiz_attempts.user_id, COUNT(*) AS attempts, "
+                "SUM(CASE WHEN quiz_attempts.correct = 1 THEN 1 ELSE 0 END) AS correct "
+                "FROM quiz_attempts JOIN users ON users.id = quiz_attempts.user_id "
+                "WHERE users.is_admin = 0 AND quiz_attempts.created_at >= ? "
+                "GROUP BY activity_day, quiz_attempts.user_id",
+                (SHANGHAI_OFFSET_SECONDS, SHANGHAI_OFFSET_SECONDS, trend_start),
+            ).fetchall()
+
+        users = []
+        for row in rows:
+            attempts = int(row["total_attempts"] or 0)
+            correct_attempts = int(row["correct_attempts"] or 0)
+            users.append({
+                "id": row["id"], "username": row["username"], "isAdmin": bool(row["is_admin"]),
+                "createdAt": row["created_at"],
+                "lastActiveAt": max(row["created_at"] or 0, row["updated_at"] or 0, row["last_active_at"] or 0, row["last_attempt_at"] or 0),
+                "durationSeconds": int(row["total_seconds"] or 0), "duration7dSeconds": int(row["seven_day_seconds"] or 0),
+                "attempts": attempts, "correctAttempts": correct_attempts,
+                "accuracy": round(correct_attempts * 100 / attempts, 1) if attempts else None,
+                "masteredCount": len(json.loads(row["mastered_json"] or "[]")),
+                "savedCount": len(json.loads(row["saved_json"] or "[]")),
+                "wrongCount": len(json.loads(row["wrong_json"] or "[]")),
+            })
+
+        trend_days = {}
+        for index in range(14):
+            day = trend_start + index * DAY_SECONDS
+            trend_days[day] = {"day": time.strftime("%Y-%m-%d", time.gmtime(day + SHANGHAI_OFFSET_SECONDS)), "userIds": set(), "activeSeconds": 0, "attempts": 0, "correct": 0}
+        for row in activity_rows:
+            day = int(row["activity_day"])
+            if day in trend_days:
+                trend_days[day]["userIds"].add(row["user_id"])
+                trend_days[day]["activeSeconds"] += int(row["active_seconds"] or 0)
+        for row in attempt_rows:
+            day = int(row["activity_day"])
+            if day in trend_days:
+                trend_days[day]["userIds"].add(row["user_id"])
+                trend_days[day]["attempts"] += int(row["attempts"] or 0)
+                trend_days[day]["correct"] += int(row["correct"] or 0)
+        trend = []
+        for values in trend_days.values():
+            attempts = values.pop("attempts")
+            correct = values.pop("correct")
+            user_ids = values.pop("userIds")
+            values.update({"activeUsers": len(user_ids), "attempts": attempts, "correct": correct, "accuracy": round(correct * 100 / attempts, 1) if attempts else None})
+            trend.append(values)
+
+        learners = [user for user in users if not user["isAdmin"]]
+        total_attempts = sum(user["attempts"] for user in learners)
+        total_correct = sum(user["correctAttempts"] for user in learners)
+        recent_attempts = int(recent_attempts_row["attempts"] or 0)
+        recent_correct = int(recent_attempts_row["correct"] or 0)
+        self.send_json(HTTPStatus.OK, {
+            "generatedAt": now,
+            "summary": {
+                "totalUsers": len(learners), "newUsers7d": sum(user["createdAt"] >= seven_day_start for user in learners),
+                "activeToday": sum(user["lastActiveAt"] >= today_start for user in learners),
+                "active7d": sum(user["lastActiveAt"] >= seven_day_start for user in learners),
+                "durationSeconds": sum(user["durationSeconds"] for user in learners),
+                "duration7dSeconds": sum(user["duration7dSeconds"] for user in learners),
+                "totalAttempts": total_attempts, "attempts7d": recent_attempts,
+                "accuracy": round(total_correct * 100 / total_attempts, 1) if total_attempts else None,
+                "accuracy7d": round(recent_correct * 100 / recent_attempts, 1) if recent_attempts else None,
+            },
+            "trend": trend, "users": users,
+        })
 
     def create_admin_invites(self):
         if not self.require_admin() or not self.consume_rate_limit():
