@@ -307,7 +307,7 @@
     .ai-input { height: 44px; padding: 0 12px; }
     .ai-textarea { min-height: 100px; padding: 11px 12px; resize: vertical; line-height: 1.7; }
     .ai-input:focus, .ai-textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(31,107,79,.1); background: #fff; }
-    .ai-form-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .ai-form-footer { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
     .ai-hint { color: var(--faint); font-size: 11px; }
     .ai-submit { min-height: 42px; padding: 0 16px; border: 1px solid var(--green); border-radius: 7px; background: var(--green); color: #fff; display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; cursor: pointer; }
     .ai-submit:disabled { opacity: .58; cursor: wait; }
@@ -1211,11 +1211,11 @@
       els.mobileTitle.textContent = '专注练习';
       els.mobileStar.classList.add('hidden');
       if (!pageItems.length) {
-        els.content.innerHTML = `<section class="practice-view"><header class="view-header"><h1>专注练习</h1><p>每组直接呈现 20 题，答错的题会自动加入复习池。</p></header>${filters}<div class="empty-state"><svg class="icon"><use href="#i-inbox"></use></svg>当前题库没有可练习的题目</div></section>`;
+        els.content.innerHTML = `<section class="practice-view"><header class="view-header"><h1>专注练习</h1></header>${filters}<div class="empty-state"><svg class="icon"><use href="#i-inbox"></use></svg>当前题库没有可练习的题目</div></section>`;
         return;
       }
       els.content.innerHTML = `<section class="practice-view">
-        <header class="view-header"><h1>专注练习</h1><p>每组直接呈现 20 题，答错的题会自动加入复习池。</p></header>
+        <header class="view-header"><h1>专注练习</h1></header>
         ${filters}
         <div class="practice-set">${pageItems.map((entry, index) => renderPracticeCard(entry, index)).join('')}</div>
         <div class="practice-set-actions"><span class="practice-set-meta">第 ${state.practicePage + 1} / ${totalPages} 组 · 共 ${state.practicePool.length} 题</span><span><button class="text-button" data-practice-page="prev" type="button" ${state.practicePage === 0 ? 'disabled' : ''}>上一组</button> <button class="text-button primary" data-practice-page="next" type="button" ${state.practicePage >= totalPages - 1 ? 'disabled' : ''}>下一组 20 题</button></span></div>
@@ -1232,7 +1232,7 @@
         <form class="ai-form" id="aiForm">
           <div class="ai-field"><label for="aiWords">需要辨析的词语</label><input class="ai-input" id="aiWords" name="words" maxlength="80" autocomplete="off" placeholder="例如：爱好、嗜好" required></div>
           <div class="ai-field"><label for="aiContext">使用语境（可选）</label><textarea class="ai-textarea" id="aiContext" name="context" maxlength="500" placeholder="可输入句子、写作场景或你不确定的用法"></textarea></div>
-          <div class="ai-form-footer"><span class="ai-hint">请求由服务端安全转发，访问密钥不会发送到浏览器。</span><button class="ai-submit" id="aiSubmit" type="submit"><svg class="icon"><use href="#i-sparkles"></use></svg><span>开始辨析</span></button></div>
+          <div class="ai-form-footer"><button class="ai-submit" id="aiSubmit" type="submit"><svg class="icon"><use href="#i-sparkles"></use></svg><span>开始辨析</span></button></div>
         </form>
         <div id="aiResult" aria-live="polite"></div>
       </section>`;
@@ -1431,7 +1431,7 @@
       els.crumb.textContent = '我的收藏';
       els.mobileTitle.textContent = '我的收藏';
       els.mobileStar.classList.add('hidden');
-      els.content.innerHTML = `<section class="saved-view"><header class="view-header"><h1>我的收藏</h1><p>集中复习需要反复辨析的词组。</p></header>
+      els.content.innerHTML = `<section class="saved-view"><header class="view-header"><h1>我的收藏</h1></header>
         ${items.length ? `<div class="saved-list">${items.map(item => `<button class="saved-item" data-saved-id="${item.id}" type="button"><span><h3>${escapeHtml(item.words.join(' / '))}</h3><p>${escapeHtml(item.pinyin)} · ${escapeHtml(item.category)}</p></span><svg class="icon"><use href="#i-back"></use></svg></button>`).join('')}</div>` : '<div class="empty-state"><svg class="icon"><use href="#i-star"></use></svg>还没有收藏词组<br>在词条右上角点击星标即可收藏</div>'}
       </section>`;
       els.content.scrollTop = 0;
