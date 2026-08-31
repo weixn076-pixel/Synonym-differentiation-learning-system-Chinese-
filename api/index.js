@@ -7,6 +7,7 @@ const INVITE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const USERNAME_PATTERN = /^[\w\u4e00-\u9fff]{3,24}$/u;
 const UPSTREAM_URL = "https://chat.ecnu.edu.cn/open/api/v1/chat/completions";
 const MODEL = "ecnu-plus";
+const GUEST_ANALYSIS_SECONDS = 365 * 24 * 60 * 60;
 
 let pool;
 let schemaReady;
@@ -175,6 +176,22 @@ function parseCookies(req) {
 
 function sessionCookie(token, maxAge = SESSION_SECONDS) {
   return `synonym_session=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
+}
+
+function guestAnalysisSignature() {
+  const secret = String(process.env.ECNU_API_KEY || process.env.DATABASE_URL || "");
+  return crypto.createHmac("sha256", secret).update("synonym-guest-analysis-used-v1").digest("base64url");
+}
+
+function guestAnalysisUsed(req) {
+  const supplied = String(parseCookies(req).synonym_guest_ai || "");
+  const expected = `v1.${guestAnalysisSignature()}`;
+  if (supplied.length !== expected.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+}
+
+function guestAnalysisCookie() {
+  return `synonym_guest_ai=v1.${guestAnalysisSignature()}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${GUEST_ANALYSIS_SECONDS}`;
 }
 
 function requestPath(req) {
@@ -394,8 +411,8 @@ async function handleLogin(req, res) {
 
 async function handleAuthMe(req, res) {
   const user = await sessionUser(req);
-  if (!user) return sendJson(res, 200, { user: null });
-  return sendJson(res, 200, { user, progress: await progressForUser(user.id) });
+  if (!user) return sendJson(res, 200, { user: null, guestTrialUsed: guestAnalysisUsed(req) });
+  return sendJson(res, 200, { user, progress: await progressForUser(user.id), guestTrialUsed: false });
 }
 
 async function handleLogout(req, res) {
@@ -489,7 +506,9 @@ async function handleAdminRevoke(req, res) {
 }
 
 async function handleAnalysis(req, res) {
-  const user = await requireUser(req, res); if (!user || !await consumeRateLimit(req, res, 10)) return;
+  const user = await sessionUser(req);
+  if (!user && guestAnalysisUsed(req)) return sendJson(res, 401, { error: "免费体验已使用，请登录后继续", loginRequired: true });
+  if (!await consumeRateLimit(req, res, user ? 10 : 3)) return;
   const body = readJson(req);
   const words = Array.isArray(body.words) ? body.words.map(value => String(value).trim()).filter(Boolean) : [];
   const context = String(body.context || "").trim();
@@ -517,7 +536,12 @@ async function handleAnalysis(req, res) {
     let analysis = payload?.choices?.[0]?.message?.content;
     if (Array.isArray(analysis)) analysis = analysis.map(part => part?.text || "").join("\n");
     if (typeof analysis !== "string" || !analysis.trim()) throw new Error("empty response");
-    return sendJson(res, 200, { analysis: analysis.trim() });
+    return sendJson(
+      res,
+      200,
+      { analysis: analysis.trim(), guestTrialUsed: !user },
+      user ? {} : { "Set-Cookie": guestAnalysisCookie() }
+    );
   } catch (error) {
     return sendJson(res, error.name === "AbortError" ? 504 : 502, { error: error.name === "AbortError" ? "连接智能辨析服务超时，请稍后再试" : "智能辨析服务返回了无法识别的内容" });
   } finally { clearTimeout(timeout); }
