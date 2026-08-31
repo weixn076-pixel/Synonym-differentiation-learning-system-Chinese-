@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 200" role="img" aria-labelledby="title desc">
+  <title id="title">词间</title>
+  <desc id="desc">词间近义词辨析系统横版品牌标志</desc>
+
+  <g transform="translate(20 10)">
+    <g fill="none" stroke-width="13" stroke-linecap="round">
+      <path d="M20 59 C39 43 58 42 77 55" stroke="#182522"/>
+      <path d="M103 62 C122 75 141 72 160 54" stroke="#182522"/>
+      <path d="M20 116 C39 99 59 97 79 111" stroke="#16A085"/>
+      <path d="M103 117 C122 130 141 127 160 108" stroke="#16A085"/>
+    </g>
+    <circle cx="91" cy="87" r="6" fill="#F05A47"/>
+  </g>
+
+  <text x="224" y="126"
+        fill="#182522"
+        font-family="PingFang SC, Hiragino Sans GB, Noto Sans CJK SC, Microsoft YaHei, sans-serif"
+        font-size="84"
+        font-weight="600"
+        letter-spacing="8">词间</text>
+</svg>
