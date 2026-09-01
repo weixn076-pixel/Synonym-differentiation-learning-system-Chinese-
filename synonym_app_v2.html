@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#f7f8f5">
   <link rel="icon" href="data:,">
   <link rel="preload" href="./dictionary_index.json" as="fetch" type="application/json" crossorigin="anonymous">
+  <link rel="preload" href="./hsk_levels.json" as="fetch" type="application/json" crossorigin="anonymous">
   <title>词间 - 近义词辨析</title>
   <style>
     :root {
@@ -131,13 +132,17 @@
     .clear-search.show { display: grid; }
     .clear-search .icon { position: static; width: 16px; height: 16px; transform: none; }
 
-    .filter-row { display: flex; gap: 7px; padding: 12px 18px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--line); }
+    .filter-panel { padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface); display: grid; gap: 8px; }
+    .filter-line { min-width: 0; display: grid; grid-template-columns: 38px minmax(0, 1fr); align-items: center; gap: 6px; }
+    .filter-label { color: var(--faint); font-size: 10px; font-weight: 700; text-align: center; }
+    .filter-row { display: flex; gap: 6px; padding: 0; overflow-x: auto; scrollbar-width: none; }
     .filter-row::-webkit-scrollbar { display: none; }
     .filter-chip {
-      flex: 0 0 auto; height: 31px; padding: 0 12px; border: 1px solid var(--line); border-radius: 16px;
-      background: #fff; color: var(--muted); font-size: 12px; cursor: pointer;
+      flex: 0 0 auto; height: 29px; padding: 0 10px; border: 1px solid var(--line); border-radius: 15px;
+      background: #fff; color: var(--muted); font-size: 11px; cursor: pointer;
     }
     .filter-chip.active { border-color: var(--green); background: var(--green-soft); color: var(--green); font-weight: 600; }
+    .hsk-filter-row .filter-chip.active { border-color: rgba(49,95,140,.38); background: var(--blue-soft); color: var(--blue); }
 
     .word-list {
       flex: 1 1 0;
@@ -153,13 +158,18 @@
     .word-list::-webkit-scrollbar, .content-scroll::-webkit-scrollbar { width: 8px; }
     .word-list::-webkit-scrollbar-thumb, .content-scroll::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 8px; background: #cfd6d0; background-clip: padding-box; }
     .word-item {
-      width: 100%; height: 54px; padding: 9px 12px; border: 0; border-radius: 7px; background: transparent;
+      width: 100%; min-height: 62px; padding: 9px 12px; border: 0; border-radius: 7px; background: transparent;
       display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 10px;
       text-align: left; cursor: pointer;
     }
     .word-item:hover { background: var(--surface-soft); }
     .word-item.active { background: var(--green-soft); }
+    .word-copy { min-width: 0; display: grid; gap: 5px; }
     .word-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 650; }
+    .word-levels { min-width: 0; display: flex; align-items: center; gap: 4px; overflow: hidden; color: var(--faint); font-size: 9px; line-height: 1; }
+    .word-level-badge { flex: 0 0 auto; padding: 3px 5px; border-radius: 3px; background: var(--blue-soft); color: var(--blue); font-size: 9px; font-weight: 750; }
+    .word-level-badge.ungraded { background: var(--surface-strong); color: var(--muted); }
+    .word-level-separator { flex: 0 0 auto; color: var(--line-strong); }
     .word-state { display: flex; align-items: center; gap: 5px; }
     .state-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
     .state-dot.mastered { background: var(--green); }
@@ -206,7 +216,10 @@
     .eyebrow { margin: 0 0 7px; color: var(--green); font-size: 12px; font-weight: 700; }
     .word-title { margin: 0; font-family: "Songti SC", "SimSun", serif; font-size: clamp(34px, 4vw, 54px); line-height: 1.16; font-weight: 700; }
     .word-pinyin { margin: 8px 0 0; color: var(--muted); font-size: 15px; }
-    .word-category { display: inline-flex; margin-top: 13px; padding: 4px 9px; border-radius: 4px; background: var(--surface-strong); color: var(--muted); font-size: 11px; }
+    .word-meta { margin-top: 14px; display: grid; gap: 8px; }
+    .word-meta-row { min-width: 0; display: grid; grid-template-columns: 56px minmax(0,1fr); align-items: start; gap: 9px; }
+    .word-meta-label { padding-top: 3px; color: var(--faint); font-size: 10px; font-weight: 700; }
+    .word-category { justify-self: start; display: inline-flex; padding: 3px 8px; border-radius: 4px; background: var(--surface-strong); color: var(--muted); font-size: 11px; }
 
     .jump-tabs {
       position: sticky; top: 0; z-index: 10; margin: 0 -34px 24px; padding: 10px 34px;
@@ -470,15 +483,18 @@
       .library-title-row .mobile-account + .library-total { margin-left: 8px; }
       .library-title-row h1 { font-size: 23px; }
       .search-input { height: 45px; font-size: 16px; }
-      .filter-row { padding: 10px 16px; background: var(--surface); }
+      .filter-panel { padding: 9px 12px 10px; gap: 7px; }
+      .filter-line { grid-template-columns: 36px minmax(0,1fr); }
+      .filter-chip { min-height: 31px; }
       .word-list { padding: 7px 8px 24px; }
-      .word-item { height: 70px; padding: 11px 13px; }
+      .word-item { min-height: 74px; padding: 10px 13px; }
       .word-name { font-size: 16px; }
       .content-scroll { background: var(--bg); }
       .detail-view, .practice-view, .saved-view, .notes-view, .ai-view, .admin-view { max-width: none; padding: 19px 16px 92px; }
       .word-hero { padding: 0 0 18px; }
       .word-title { font-size: clamp(32px, 10vw, 42px); overflow-wrap: anywhere; }
       .word-pinyin { font-size: 13px; }
+      .word-meta-row { grid-template-columns: 52px minmax(0,1fr); }
       .jump-tabs { top: 0; margin: 0 -16px 17px; padding: 8px 12px; background: rgba(243,245,242,.97); }
       .content-section { padding-bottom: 24px; scroll-margin-top: 54px; }
       .section-heading h2 { font-size: 17px; }
@@ -575,11 +591,30 @@
           <button class="clear-search" id="clearSearch" type="button" aria-label="清除搜索"><svg class="icon"><use href="#i-x"></use></svg></button>
         </label>
       </header>
-      <div class="filter-row" id="filterRow" aria-label="筛选词库">
-        <button class="filter-chip active" data-filter="all" type="button">全部</button>
-        <button class="filter-chip" data-filter="unmastered" type="button">待掌握</button>
-        <button class="filter-chip" data-filter="mastered" type="button">已掌握</button>
-        <button class="filter-chip" data-filter="saved" type="button">已收藏</button>
+      <div class="filter-panel" aria-label="筛选词库">
+        <div class="filter-line">
+          <span class="filter-label">状态</span>
+          <div class="filter-row" id="filterRow">
+            <button class="filter-chip active" data-filter="all" type="button">全部</button>
+            <button class="filter-chip" data-filter="unmastered" type="button">待掌握</button>
+            <button class="filter-chip" data-filter="mastered" type="button">已掌握</button>
+            <button class="filter-chip" data-filter="saved" type="button">已收藏</button>
+          </div>
+        </div>
+        <div class="filter-line">
+          <span class="filter-label">等级</span>
+          <div class="filter-row hsk-filter-row" id="hskFilterRow">
+            <button class="filter-chip active" data-hsk-filter="all" type="button">全部</button>
+            <button class="filter-chip" data-hsk-filter="HSK1" type="button">HSK1</button>
+            <button class="filter-chip" data-hsk-filter="HSK2" type="button">HSK2</button>
+            <button class="filter-chip" data-hsk-filter="HSK3" type="button">HSK3</button>
+            <button class="filter-chip" data-hsk-filter="HSK4" type="button">HSK4</button>
+            <button class="filter-chip" data-hsk-filter="HSK5" type="button">HSK5</button>
+            <button class="filter-chip" data-hsk-filter="HSK6" type="button">HSK6</button>
+            <button class="filter-chip" data-hsk-filter="HSK7-9" type="button">HSK7-9</button>
+            <button class="filter-chip" data-hsk-filter="未分级" type="button">未分级</button>
+          </div>
+        </div>
       </div>
       <div class="word-list" id="wordList"></div>
     </section>
@@ -651,6 +686,7 @@
       data: [],
       selectedId: null,
       filter: 'all',
+      hskFilter: 'all',
       query: '',
       view: 'library',
       mastered: new Set(readList(STORAGE.mastered)),
@@ -1045,6 +1081,26 @@
       document.getElementById('libraryTotal').textContent = `${total} 组`;
     }
 
+    const HSK_LEVEL_ORDER = ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6', 'HSK7-9', '未分级'];
+
+    function itemHskLevels(item) {
+      const levels = Array.isArray(item?.hsk) ? item.hsk : [];
+      return (item?.words || []).map((_, index) => levels[index] || '未分级');
+    }
+
+    function renderHskBadge(level) {
+      const normalized = HSK_LEVEL_ORDER.includes(level) ? level : '未分级';
+      return `<span class="word-level-badge ${normalized === '未分级' ? 'ungraded' : ''}">${escapeHtml(normalized)}</span>`;
+    }
+
+    function renderWordLevelSummary(item) {
+      return itemHskLevels(item).map((level, index) => `${index ? '<span class="word-level-separator">/</span>' : ''}${renderHskBadge(level)}`).join('');
+    }
+
+    function renderDetailHsk(item) {
+      return escapeHtml(itemHskLevels(item).join(' / '));
+    }
+
     function normalizeSearch(value) {
       return String(value || '')
         .trim()
@@ -1060,6 +1116,7 @@
         if (state.filter === 'unmastered' && state.mastered.has(item.id)) return false;
         if (state.filter === 'mastered' && !state.mastered.has(item.id)) return false;
         if (state.filter === 'saved' && !state.saved.has(item.id)) return false;
+        if (state.hskFilter !== 'all' && !itemHskLevels(item).includes(state.hskFilter)) return false;
         if (!query) return true;
         const text = normalizeSearch([item.words?.join(' '), item.pinyin].join(' '));
         return text.includes(query);
@@ -1076,7 +1133,7 @@
       }
       els.wordList.innerHTML = items.map(item => `
         <button class="word-item ${item.id === state.selectedId ? 'active' : ''}" type="button" data-id="${item.id}">
-          <span class="word-name">${escapeHtml(item.words.join(' / '))}</span>
+          <span class="word-copy"><span class="word-name">${escapeHtml(item.words.join(' / '))}</span><span class="word-levels">${renderWordLevelSummary(item)}</span></span>
           <span class="word-state">${state.saved.has(item.id) ? '<svg class="mini-star"><use href="#i-star"></use></svg>' : ''}<span class="state-dot ${state.mastered.has(item.id) ? 'mastered' : ''}"></span></span>
         </button>`).join('');
       els.wordList.scrollTop = options.resetScroll ? 0 : previousScrollTop;
@@ -1154,7 +1211,7 @@
       els.masterButton.classList.toggle('active', isMastered);
       els.masterButton.querySelector('span').textContent = isMastered ? '已掌握' : '标记已掌握';
       els.content.innerHTML = `<article class="detail-view">
-        <header class="word-hero"><p class="eyebrow">第 ${String(item.id).padStart(3,'0')} 组</p><h1 class="word-title">${escapeHtml(item.words.join(' · '))}</h1><p class="word-pinyin">${escapeHtml(item.pinyin)}</p><span class="word-category">${escapeHtml(item.category)}</span></header>
+        <header class="word-hero"><h1 class="word-title">${escapeHtml(item.words.join(' · '))}</h1><p class="word-pinyin">${escapeHtml(item.pinyin)}</p><div class="word-meta"><div class="word-meta-row"><span class="word-meta-label">词性</span><span class="word-category">${escapeHtml(item.category)}</span></div><div class="word-meta-row"><span class="word-meta-label">HSK等级</span><span class="word-category">${renderDetailHsk(item)}</span></div></div></header>
         <nav class="jump-tabs" aria-label="词条内容导航">
           <button class="jump-tab active" data-target="section-common" type="button">相同之处</button>
           <button class="jump-tab" data-target="section-contrast" type="button">不同之处</button>
@@ -1662,6 +1719,12 @@
         document.querySelectorAll('[data-filter]').forEach(button => button.classList.toggle('active', button === filter));
         renderWordList({resetScroll:true}); return;
       }
+      const hskFilter = event.target.closest('[data-hsk-filter]');
+      if (hskFilter) {
+        state.hskFilter = hskFilter.dataset.hskFilter;
+        document.querySelectorAll('[data-hsk-filter]').forEach(button => button.classList.toggle('active', button === hskFilter));
+        renderWordList({resetScroll:true}); return;
+      }
       const jump = event.target.closest('.jump-tab');
       if (jump) {
         document.querySelectorAll('.jump-tab').forEach(button => button.classList.toggle('active', button === jump));
@@ -1761,13 +1824,23 @@
 
     async function loadDictionary() {
       let indexLoaded = false;
+      let hskLevels = {};
+      try {
+        const hskLevelsResponse = await fetch('./hsk_levels.json');
+        if (!hskLevelsResponse.ok) throw new Error(`HTTP ${hskLevelsResponse.status}`);
+        hskLevels = await hskLevelsResponse.json();
+      } catch (error) {
+        els.loading.innerHTML = `<div class="loading-box"><strong>HSK 等级载入失败</strong><br><span>${escapeHtml(error.message)}，请刷新后重试。</span></div>`;
+        return;
+      }
       const fullDictionaryRequest = fetch('./dictionary.json');
+      const withHskLevels = entries => entries.map(entry => ({...entry, hsk: hskLevels[entry.id] || []}));
       try {
         const indexResponse = await fetch('./dictionary_index.json');
         if (!indexResponse.ok) throw new Error(`HTTP ${indexResponse.status}`);
         const index = await indexResponse.json();
         if (!Array.isArray(index) || !index.length) throw new Error('词库目录为空');
-        state.data = index;
+        state.data = withHskLevels(index);
         state.selectedId = index[0].id;
         indexLoaded = true;
         updateStats(); renderWordList(); renderDetail();
@@ -1778,7 +1851,7 @@
       try {
         const response = await fullDictionaryRequest;
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
+        const data = withHskLevels(await response.json());
         if (!Array.isArray(data) || !data.length) throw new Error('词库为空');
         state.data = data;
         state.dictionaryReady = true;
